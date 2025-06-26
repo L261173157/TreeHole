@@ -57,12 +57,10 @@ def createMessage(message: schemas.MessageCreate):
         msg = schemas.Message(
             id=new_id,
             content=message.content,
-            parent_id=message.parent_id,
+            parent_id=None,  # 不再支持回复
             timestamp=datetime.utcnow(),
             like_count=0,
-            dislike_count=0,
-            reply_count=0,
-            replies=[]
+            dislike_count=0
         )
         messages_store.append(msg)
     return api_response(msg.dict())

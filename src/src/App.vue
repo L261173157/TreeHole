@@ -44,16 +44,6 @@
               <el-button size="small" type="danger" plain @click="dislikeMessage(msg.id)">
                 👎 {{ msg.dislike_count }}
               </el-button>
-              <span class="reply-count">💬 {{ msg.reply_count || 0 }}</span>
-            </div>
-            <div v-if="msg.replies && msg.replies.length" class="replies">
-              <div v-for="reply in msg.replies" :key="reply.id" class="reply-item">
-                <div class="reply-meta">
-                  <el-tag size="small" type="info">#{{ reply.id }}</el-tag>
-                  <span class="timestamp">🕒 {{ formatTime(reply.timestamp) }}</span>
-                </div>
-                <div class="reply-content">{{ reply.content }}</div>
-              </div>
             </div>
           </div>
         </div>
@@ -245,10 +235,6 @@ body, #app {
   gap: 12px;
   align-items: center;
   margin-bottom: 4px;
-}
-.reply-count {
-  color: #409EFF;
-  font-size: 13px;
 }
 .replies {
   margin-left: 24px;

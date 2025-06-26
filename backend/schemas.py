@@ -1,5 +1,5 @@
 from pydantic import BaseModel, validator, Field
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
 from config import MESSAGE_CONFIG, ERROR_MESSAGES
 
@@ -52,15 +52,11 @@ class Message(MessageBase):
         timestamp (datetime): 留言创建时间
         like_count (int): 点赞数量
         dislike_count (int): 踩数量
-        reply_count (int): 回复数量
-        replies (List[Message]): 回复列表
     """
     id: int
     timestamp: datetime
     like_count: int
     dislike_count: int
-    reply_count: int
-    replies: List['Message'] = Field(default_factory=list)
 
     class Config:
         orm_mode = True
