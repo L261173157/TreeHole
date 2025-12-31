@@ -3,7 +3,7 @@ fastapi==0.104.1          # 高性能Web框架
 uvicorn[standard]==0.24.0 # ASGI服务器
 
 # ==================== Database ====================
-sqlalchemy==2.0.23        # ORM框架
+sqlalchemy>=2.0.36        # ORM框架 (修复 Python 3.12+ 兼容性)
 # 数据库驱动 (根据使用的数据库选择一个)
 # pymysql==1.1.0         # MySQL驱动
 # psycopg2-binary==2.9.9 # PostgreSQL驱动
