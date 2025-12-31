@@ -143,7 +143,9 @@ let refreshTimer = null
 const remainingChars = computed(() => 140 - (newMessage.value?.length || 0))
 
 // API配置
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+// 开发环境: http://127.0.0.1:8000
+// 生产环境: /api (通过nginx代理)
+const API_BASE = import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? '/api' : 'http://127.0.0.1:8000')
 
 // 获取留言列表
 const fetchMessages = async () => {
