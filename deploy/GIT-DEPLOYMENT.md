@@ -42,7 +42,7 @@ CPU: 1核
 你需要知道以下信息：
 
 ```bash
-服务器IP地址: 例如 123.45.67.89
+服务器IP地址: 123.57.82.112
 SSH端口: 通常为 22
 SSH用户名: root 或 ubuntu 或其他
 SSH密码或密钥
@@ -54,7 +54,7 @@ SSH密码或密钥
 
 ```bash
 # 测试SSH连接
-ssh user@123.45.67.89
+ssh user@123.57.82.112
 
 # 成功后会提示输入密码
 # 输入密码后能登录说明连接正常
@@ -69,7 +69,7 @@ ssh user@123.45.67.89
 ### 2.1 登录服务器
 
 ```bash
-ssh user@123.45.67.89
+ssh user@123.57.82.112
 # 输入密码登录
 ```
 
@@ -163,9 +163,9 @@ exit
    - **不要勾选**"Add a README file"（我们已经有了）
 4. 点击 `Create repository`
 
-创建后，GitHub会显示仓库地址，类似：
+创建后，GitHub会显示仓库地址：
 ```
-https://github.com/YOUR_USERNAME/TreeHole.git
+https://github.com/L261173157/TreeHole.git
 ```
 
 ### 3.2 在本地初始化Git
@@ -228,10 +228,7 @@ git commit -m "Initial commit: TreeHole匿名留言板
 
 ```bash
 # 添加GitHub远程仓库
-git remote add origin https://github.com/YOUR_USERNAME/TreeHole.git
-
-# 替换YOUR_USERNAME为你的GitHub用户名
-# 例如: git remote add origin https://github.com/zhangsan/TreeHole.git
+git remote add origin https://github.com/L261173157/TreeHole.git
 ```
 
 验证远程仓库：
@@ -239,8 +236,8 @@ git remote add origin https://github.com/YOUR_USERNAME/TreeHole.git
 ```bash
 git remote -v
 # 应该显示：
-# origin  https://github.com/YOUR_USERNAME/TreeHole.git (fetch)
-# origin  https://github.com/YOUR_USERNAME/TreeHole.git (push)
+# origin  https://github.com/L261173157/TreeHole.git (fetch)
+# origin  https://github.com/L261173157/TreeHole.git (push)
 ```
 
 ### 3.6 推送到GitHub
@@ -271,14 +268,14 @@ git push -u origin master
 **登录服务器**：
 
 ```bash
-ssh user@123.45.67.89
+ssh user@123.57.82.112
 ```
 
 **克隆代码**：
 
 ```bash
 cd /opt
-sudo git clone https://github.com/YOUR_USERNAME/TreeHole.git
+sudo git clone https://github.com/L261173157/TreeHole.git
 cd TreeHole
 ```
 
@@ -302,13 +299,13 @@ tar -czf treehole.tar.gz --exclude='node_modules' --exclude='venv' --exclude='__
 **上传到服务器**：
 
 ```bash
-scp treehole.tar.gz user@123.45.67.89:/tmp/
+scp treehole.tar.gz user@123.57.82.112:/tmp/
 ```
 
 **在服务器上解压**：
 
 ```bash
-ssh user@123.45.67.89
+ssh user@123.57.82.112
 cd /opt
 sudo mkdir -p treehole
 cd treehole
@@ -336,8 +333,8 @@ sudo bash deploy/git-deploy.sh main
 分支: main
 部署目录: /opt/treehole
 
-服务器IP: 123.45.67.89
-是否使用IP地址 123.45.67.89 访问? (y/n):
+服务器IP: 123.57.82.112
+是否使用IP地址 123.57.82.112 访问? (y/n):
 ```
 
 **输入 `y` 并回车**。
@@ -411,9 +408,9 @@ Created symlink /etc/systemd/system/multi-user.target.wants/treehole-backend.ser
 ========================================
 
 访问地址:
-  前端: http://123.45.67.89
-  API: http://123.45.67.89/api/
-  API文档: http://123.45.67.89/docs
+  前端: http://123.57.82.112
+  API: http://123.57.82.112/api/
+  API文档: http://123.57.82.112/docs
 
 更新部署时运行:
   sudo /opt/treehole/deploy/git-deploy.sh main
@@ -425,13 +422,13 @@ Created symlink /etc/systemd/system/multi-user.target.wants/treehole-backend.ser
 
 #### 在浏览器访问
 
-1. **前端页面**: http://123.45.67.89
+1. **前端页面**: http://123.57.82.112
    - 应该看到"树洞"标题和留言板界面
 
-2. **API文档**: http://123.45.67.89/docs
+2. **API文档**: http://123.57.82.112/docs
    - 应该看到Swagger UI界面
 
-3. **健康检查**: http://123.45.67.89/ping
+3. **健康检查**: http://123.57.82.112/ping
    - 应该返回JSON: `{"status":"ok","message":"服务正常运行"}`
 
 #### 在服务器检查服务状态
@@ -519,7 +516,7 @@ sudo nano /opt/treehole/deploy/production.env
 
 ```bash
 # 使用IP访问
-CORS_ORIGINS=http://123.45.67.89:5173,http://123.45.67.89:8000
+CORS_ORIGINS=http://123.57.82.112:5173,http://123.57.82.112:8000
 
 # 或使用域名（如果有）
 CORS_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
@@ -585,7 +582,7 @@ SHA256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx github-actions
 #### 方法一：使用ssh-copy-id（推荐）
 
 ```bash
-ssh-copy-id -i ~/.ssh/treehole_deploy.pub user@123.45.67.89
+ssh-copy-id -i ~/.ssh/treehole_deploy.pub user@123.57.82.112
 ```
 
 **提示**：输入服务器密码
@@ -595,7 +592,7 @@ ssh-copy-id -i ~/.ssh/treehole_deploy.pub user@123.45.67.89
 ```
 Number of key(s) added: 1
 
-Now try logging into the machine, with:   "ssh 'user@123.45.67.89'"
+Now try logging into the machine, with:   "ssh 'user@123.57.82.112'"
 and check to make sure that only the key(s) you wanted were added.
 ```
 
@@ -616,7 +613,7 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx github-ac
 **步骤2：登录服务器**
 
 ```bash
-ssh user@123.45.67.89
+ssh user@123.57.82.112
 ```
 
 **步骤3：添加公钥**
@@ -642,7 +639,7 @@ exit
 ### 5.4 测试SSH密钥登录
 
 ```bash
-ssh -i ~/.ssh/treehole_deploy user@123.45.67.89
+ssh -i ~/.ssh/treehole_deploy user@123.57.82.112
 ```
 
 **成功标志**：应该能**免密登录**，不需要输入密码！
@@ -695,7 +692,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 5. **添加服务器IP**
    - 再次点击 `New repository secret`
    - **Name**: `SERVER_HOST`
-   - **Value**: `123.45.67.89`（你的服务器IP）
+   - **Value**: `123.57.82.112`（你的服务器IP）
    - 点击 `Add secret`
 
 6. **添加服务器用户名**
@@ -844,12 +841,12 @@ git push origin main
 2. **测试应用**
    ```bash
    # 在浏览器访问
-   http://123.45.67.89
+   http://123.57.82.112
    ```
 
 3. **检查服务器**
    ```bash
-   ssh user@123.45.67.89
+   ssh user@123.57.82.112
    sudo systemctl status treehole-backend
    ```
 
@@ -999,7 +996,7 @@ To https://github.com/YOUR_USERNAME/TreeHole.git
 #### 在服务器监控
 
 ```bash
-ssh user@123.45.67.89
+ssh user@123.57.82.112
 
 # 实时查看日志
 sudo journalctl -u treehole-backend -f
@@ -1013,13 +1010,13 @@ tail -f /opt/treehole/backend/backend.log
 部署完成后：
 
 1. **刷新浏览器**
-   - 访问 http://123.45.67.89
+   - 访问 http://123.57.82.112
    - 测试新功能
    - 检查是否正常
 
 2. **检查API**
    ```bash
-   curl http://123.45.67.89/ping
+   curl http://123.57.82.112/ping
    ```
 
 3. **查看服务状态**
@@ -1046,7 +1043,7 @@ Error: Permission denied (publickey)
 #### 1. 测试SSH连接
 
 ```bash
-ssh -i ~/.ssh/treehole_deploy user@123.45.67.89
+ssh -i ~/.ssh/treehole_deploy user@123.57.82.112
 ```
 
 **如果无法免密登录**：
@@ -1209,8 +1206,8 @@ sudo systemctl restart nginx
 **错误信息**（浏览器F12控制台）：
 
 ```
-Access to XMLHttpRequest at 'http://123.45.67.89:8000/messages/'
-from origin 'http://123.45.67.89' has been blocked by CORS policy
+Access to XMLHttpRequest at 'http://123.57.82.112:8000/messages/'
+from origin 'http://123.57.82.112' has been blocked by CORS policy
 ```
 
 **原因**：CORS配置错误
@@ -1235,13 +1232,13 @@ sudo nano /opt/treehole/deploy/production.env
 
 ```bash
 # 使用IP
-CORS_ORIGINS=http://123.45.67.89:5173,http://123.45.67.89:8000
+CORS_ORIGINS=http://123.57.82.112:5173,http://123.57.82.112:8000
 
 # 使用域名
 CORS_ORIGINS=https://yourdomain.com,http://yourdomain.com
 
 # 多个地址用逗号分隔
-CORS_ORIGINS=http://123.45.67.89,https://yourdomain.com,http://localhost:5173
+CORS_ORIGINS=http://123.57.82.112,https://yourdomain.com,http://localhost:5173
 ```
 
 #### 4. 重启后端
@@ -1254,16 +1251,16 @@ sudo systemctl restart treehole-backend
 
 ```bash
 # 测试CORS
-curl -H "Origin: http://123.45.67.89" \
+curl -H "Origin: http://123.57.82.112" \
      -H "Access-Control-Request-Method: GET" \
      -X OPTIONS \
-     http://123.45.67.89:8000/messages/
+     http://123.57.82.112:8000/messages/
 ```
 
 应该返回CORS头：
 
 ```
-Access-Control-Allow-Origin: http://123.45.67.89
+Access-Control-Allow-Origin: http://123.57.82.112
 ```
 
 ### 7.5 后端服务启动失败

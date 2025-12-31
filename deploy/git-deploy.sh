@@ -8,7 +8,7 @@ set -e
 # 配置
 BRANCH=${1:-main}
 PROJECT_DIR="/opt/treehole"
-REPO_URL="https://github.com/YOUR_USERNAME/TreeHole.git"  # 修改为你的仓库地址
+REPO_URL="https://github.com/L261173157/TreeHole.git"  # 你的仓库地址
 
 echo "========================================"
 echo "   TreeHole Git部署脚本"
