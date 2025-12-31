@@ -1,0 +1,147 @@
+#!/bin/bash
+
+# TreeHole 手动更新脚本
+# 用法: sudo bash deploy/manual-update.sh
+
+set -e
+
+echo "========================================"
+echo "   TreeHole 手动更新脚本"
+echo "========================================"
+echo ""
+
+PROJECT_DIR="/opt/treehole"
+cd $PROJECT_DIR
+
+# 检查是否为root用户
+if [ "$EUID" -ne 0 ]; then
+    echo "❌ 请使用 sudo 运行此脚本"
+    exit 1
+fi
+
+# 1. 备份数据库
+echo "📦 [1/6] 备份数据库..."
+BACKUP_FILE="backend/treehole.db.backup.$(date +%Y%m%d_%H%M%S)"
+if [ -f "backend/treehole.db" ]; then
+    cp backend/treehole.db "$BACKUP_FILE"
+    echo "✅ 数据库已备份至: $BACKUP_FILE"
+    ls -lh "$BACKUP_FILE"
+else
+    echo "⚠️  警告: 数据库文件不存在,跳过备份"
+fi
+echo ""
+
+# 2. 拉取代码
+echo "📥 [2/6] 拉取最新代码..."
+git fetch origin
+CURRENT_COMMIT=$(git rev-parse HEAD)
+REMOTE_COMMIT=$(git rev-parse origin/main)
+
+if [ "$CURRENT_COMMIT" = "$REMOTE_COMMIT" ]; then
+    echo "✅ 代码已经是最新版本"
+else
+    echo "📝 更新内容:"
+    git log HEAD..origin/main --oneline
+    echo ""
+    git pull origin main
+    echo "✅ 代码已更新"
+fi
+echo ""
+
+# 3. 更新后端依赖
+echo "📦 [3/6] 检查后端依赖..."
+cd backend
+if [ ! -d "venv" ]; then
+    echo "❌ 虚拟环境不存在,请先运行首次部署脚本"
+    exit 1
+fi
+
+source venv/bin/activate
+pip install -r requirements.txt --quiet
+deactivate
+cd ..
+echo "✅ 后端依赖已更新"
+echo ""
+
+# 4. 重启后端
+echo "🔄 [4/6] 重启后端服务..."
+systemctl restart treehole-backend
+sleep 3
+
+if systemctl is-active --quiet treehole-backend; then
+    echo "✅ 后端服务已重启"
+else
+    echo "❌ 后端服务启动失败!"
+    echo "📋 错误日志:"
+    journalctl -u treehole-backend -n 20 --no-pager
+    exit 1
+fi
+echo ""
+
+# 5. 构建前端
+echo "🔨 [5/6] 构建前端..."
+cd src
+if [ ! -d "node_modules" ]; then
+    echo "📦 首次构建,安装依赖..."
+    npm install
+fi
+
+npm run build
+if [ -d "dist" ] && [ "$(ls -A dist)" ]; then
+    echo "✅ 前端构建完成"
+    ls -lh dist/ | head -5
+else
+    echo "❌ 前端构建失败!"
+    exit 1
+fi
+cd ..
+echo ""
+
+# 6. 重启nginx
+echo "🔄 [6/6] 重启nginx..."
+systemctl restart nginx
+
+if systemctl is-active --quiet nginx; then
+    echo "✅ nginx已重启"
+else
+    echo "❌ nginx启动失败!"
+    nginx -t
+    exit 1
+fi
+echo ""
+
+# 7. 验证
+echo "🔍 验证服务状态..."
+if curl -s http://localhost:8000/ping | grep -q "ok"; then
+    echo "✅ 后端服务正常"
+else
+    echo "❌ 后端服务异常"
+    echo "📋 后端日志:"
+    journalctl -u treehole-backend -n 20 --no-pager
+    exit 1
+fi
+
+# 清理旧备份(保留最近7天)
+echo ""
+echo "🧹 清理旧备份..."
+find backend/treehole.db.backup.* -mtime +7 -delete 2>/dev/null || true
+echo "✅ 已清理7天前的备份"
+
+echo ""
+echo "========================================"
+echo "  更新完成!"
+echo "========================================"
+echo ""
+echo "🌐 访问地址: http://123.57.82.112"
+if [ -f "$BACKUP_FILE" ]; then
+    echo "💾 数据库备份: $BACKUP_FILE"
+fi
+echo ""
+echo "📊 服务状态:"
+systemctl is-active treehole-backend && echo "  ✅ 后端服务: 运行中" || echo "  ❌ 后端服务: 已停止"
+systemctl is-active nginx && echo "  ✅ Nginx: 运行中" || echo "  ❌ Nginx: 已停止"
+echo ""
+echo "📋 查看日志:"
+echo "  后端: sudo journalctl -u treehole-backend -f"
+echo "  Nginx: sudo tail -f /var/log/nginx/error.log"
+echo ""

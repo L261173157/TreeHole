@@ -75,12 +75,15 @@ TreeHole/
 │
 ├── deploy/              # 部署相关文件
 │   ├── git-deploy.sh    # Git自动部署脚本
+│   ├── manual-update.sh # 手动更新脚本
+│   ├── backup-db.sh     # 数据库备份脚本
 │   ├── start-production.sh  # 生产环境启动脚本
 │   ├── stop-production.sh   # 生产环境停止脚本
 │   ├── quick-deploy.sh  # 一键部署脚本
 │   ├── treehole-backend.service # systemd服务配置
 │   ├── DEPLOYMENT.md    # 传统部署指南
-│   └── GIT-DEPLOYMENT.md # Git部署详细指南
+│   ├── GIT-DEPLOYMENT.md # Git部署详细指南
+│   └── MANUAL-GIT-UPDATE.md # 手动更新指南
 │
 ├── .github/             # GitHub配置
 │   └── workflows/
