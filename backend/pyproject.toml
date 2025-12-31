@@ -1,0 +1,110 @@
+[tool.black]
+# Black 代码格式化配置
+
+# 目标行长度
+line-length = 100
+
+# 引号风格: 双引号
+quote-style = "double"
+
+# 导入排序风格
+import-heading-style = "black"
+
+# 不使用尾随逗号
+skip-string-normalization = false
+
+# 排除的目录
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | venv
+)/
+'''
+
+[tool.isort]
+# isort 导入排序配置
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.mypy]
+# mypy 类型检查配置
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # 暂时关闭,逐步开启
+disallow_incomplete_defs = false
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+follow_imports = "normal"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# 忽略第三方库的类型检查
+module = [
+    "uvicorn.*",
+    "sqlalchemy.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+# pytest 测试配置
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",                    # 详细输出
+    "--strict-markers",      # 严格标记检查
+    "--tb=short",            # 简短的错误回溯
+    "--cov=.",               # 覆盖率检查
+    "--cov-report=term-missing",  # 覆盖率报告显示缺失的行
+    "--cov-report=html",     # HTML覆盖率报告
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+# 覆盖率运行配置
+source = ["."]
+omit = [
+    "*/tests/*",
+    "*/venv/*",
+    "*/__pycache__/*",
+    "*/site-packages/*",
+    "test_*.py",
+]
+
+[tool.coverage.report]
+# 覆盖率报告配置
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

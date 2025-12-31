@@ -1,3 +1,22 @@
+<!--
+  TreeHole 留言板组件
+
+  这是一个匿名留言板的主要界面组件,提供以下功能:
+  - 发布新留言(最多140字符)
+  - 查看留言列表(自动刷新)
+  - 点赞/点踩留言
+
+  技术栈:
+  - Vue 3 Composition API
+  - Element Plus UI组件库
+  - Fetch API 进行数据请求
+
+  特性:
+  - 响应式设计
+  - 自动刷新(30秒间隔)
+  - 输入验证
+  - 错误处理和用户提示
+-->
 <template>
   <div class="message-board">
     <div class="main-content">
@@ -80,39 +99,72 @@
 </template>
 
 <script setup>
+/**
+ * TreeHole 留言板组件逻辑
+ *
+ * 主要功能:
+ * 1. 留言管理 - 创建、读取留言
+ * 2. 交互功能 - 点赞、点踩
+ * 3. 自动刷新 - 定时获取最新留言
+ * 4. 输入验证 - 确保留言内容合法
+ */
+
 import { ref, onMounted, onUnmounted } from 'vue'
 import { ChatDotRound, CaretTop, CaretBottom, Promotion } from '@element-plus/icons-vue'
 import { API_ENDPOINTS, getApiUrl, SUCCESS_MESSAGES, MESSAGE_CONFIG } from '../config/api.js'
-import { 
-  showErrorMessage, 
-  showSuccessMessage, 
-  retryApiCall, 
-  validateInput 
+import {
+  showErrorMessage,
+  showSuccessMessage,
+  retryApiCall,
+  validateInput
 } from '../utils/errorHandler.js'
 
+// ==================== 响应式状态 ====================
+
+// 新留言输入内容
 const newMessage = ref('')
+
+// 留言列表数据
 const messages = ref([])
+
+// 加载状态 - 用于防止重复请求
 const isLoading = ref(false)
+
+// 提交状态 - 用于防止重复提交
 const isSubmitting = ref(false)
+
+// 自动刷新定时器
 let refreshTimer = null
+
+// ==================== API调用函数 ====================
 
 /**
  * 获取留言列表
+ *
+ * 从服务器获取最新的留言列表并更新界面
+ * 使用isLoading状态防止并发请求
  */
 const fetchMessages = async () => {
   try {
     isLoading.value = true
+
+    // 发起GET请求获取留言列表
     const res = await fetch(getApiUrl(API_ENDPOINTS.MESSAGES))
+
+    // 检查HTTP响应状态
     if (!res.ok) {
       const errorData = await res.json()
       const error = new Error(errorData.detail || '获取留言失败')
       error.response = { status: res.status, data: errorData }
       throw error
     }
+
+    // 解析响应数据
     const response = await res.json()
     messages.value = response.data || []
     console.log(`成功获取 ${messages.value.length} 条留言`)
   } catch (error) {
+    // 显示错误提示给用户
     showErrorMessage(error, '获取留言列表')
   } finally {
     isLoading.value = false
@@ -121,30 +173,46 @@ const fetchMessages = async () => {
 
 /**
  * 提交新留言
+ *
+ * 验证用户输入并发送到服务器创建新留言
+ * 成功后清空输入框并刷新留言列表
  */
 const submitMessage = async () => {
+  // 去除首尾空格
   const content = newMessage.value.trim()
-  // 验证输入
+
+  // 验证输入内容(长度、格式等)
   const validation = validateInput(content, MESSAGE_CONFIG.MAX_LENGTH, MESSAGE_CONFIG.MIN_LENGTH)
   if (!validation.isValid) {
     showErrorMessage(new Error(validation.message), '输入验证')
     return
   }
+
   try {
     isSubmitting.value = true
+
+    // 发起POST请求创建留言
     const res = await fetch(getApiUrl(API_ENDPOINTS.MESSAGES), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content })
     })
+
+    // 检查HTTP响应状态
     if (!res.ok) {
       const errorData = await res.json()
       const error = new Error(errorData.detail || '发布留言失败')
       error.response = { status: res.status, data: errorData }
       throw error
     }
+
+    // 显示成功提示
     showSuccessMessage(SUCCESS_MESSAGES.MESSAGE_CREATED)
+
+    // 清空输入框
     newMessage.value = ''
+
+    // 刷新留言列表以显示新留言
     await fetchMessages()
   } catch (error) {
     showErrorMessage(error, '发布留言')
@@ -155,18 +223,27 @@ const submitMessage = async () => {
 
 /**
  * 点赞留言
- * @param {number} id - 留言ID
+ *
+ * 增加指定留言的点赞计数
+ * 点赞成功后刷新列表以更新UI显示
+ *
+ * @param {number} id - 要点赞的留言ID
  */
 const likeMessage = async (id) => {
   try {
+    // 发起POST请求进行点赞
     const res = await fetch(getApiUrl(API_ENDPOINTS.LIKE_MESSAGE(id)), { method: 'POST' })
+
     if (!res.ok) {
       const errorData = await res.json()
       const error = new Error(errorData.detail || '点赞失败')
       error.response = { status: res.status, data: errorData }
       throw error
     }
+
     showSuccessMessage(SUCCESS_MESSAGES.MESSAGE_LIKED)
+
+    // 刷新列表以更新点赞数显示
     await fetchMessages()
   } catch (error) {
     showErrorMessage(error, '点赞操作')
@@ -174,29 +251,44 @@ const likeMessage = async (id) => {
 }
 
 /**
- * 踩留言
- * @param {number} id - 留言ID
+ * 点踩留言
+ *
+ * 增加指定留言的点踩计数
+ * 点踩成功后刷新列表以更新UI显示
+ *
+ * @param {number} id - 要点踩的留言ID
  */
 const dislikeMessage = async (id) => {
   try {
+    // 发起POST请求进行点踩
     const res = await fetch(getApiUrl(API_ENDPOINTS.DISLIKE_MESSAGE(id)), { method: 'POST' })
+
     if (!res.ok) {
       const errorData = await res.json()
       const error = new Error(errorData.detail || '踩失败')
       error.response = { status: res.status, data: errorData }
       throw error
     }
+
     showSuccessMessage(SUCCESS_MESSAGES.MESSAGE_DISLIKED)
+
+    // 刷新列表以更新点踩数显示
     await fetchMessages()
   } catch (error) {
     showErrorMessage(error, '踩操作')
   }
 }
 
+// ==================== 工具函数 ====================
+
 /**
  * 格式化时间显示
- * @param {string} timestamp - 时间戳
- * @returns {string} 格式化后的时间
+ *
+ * 将ISO时间戳转换为本地化的中文时间格式
+ * 格式示例: 2025/12/30 14:30
+ *
+ * @param {string} timestamp - ISO格式的时间戳
+ * @returns {string} 格式化后的时间字符串,如果解析失败则返回错误提示
  */
 const formatTime = (timestamp) => {
   try {
@@ -213,19 +305,28 @@ const formatTime = (timestamp) => {
   }
 }
 
+// ==================== 自动刷新管理 ====================
+
 /**
- * 设置自动刷新
+ * 设置自动刷新定时器
+ *
+ * 每隔指定时间(默认30秒)自动刷新留言列表
+ * 只在没有进行其他操作(加载/提交)时才执行刷新
+ * 这样可以避免并发请求和重复操作
  */
 const setupAutoRefresh = () => {
   refreshTimer = setInterval(() => {
+    // 检查是否正在加载或提交,避免并发请求
     if (!isLoading.value && !isSubmitting.value) {
       fetchMessages()
     }
-  }, MESSAGE_CONFIG.REFRESH_INTERVAL)
+  }, MESSAGE_CONFIG.REFRESH_INTERVAL)  // 使用配置文件中的刷新间隔
 }
 
 /**
- * 清除自动刷新
+ * 清除自动刷新定时器
+ *
+ * 组件卸载时必须清除定时器,防止内存泄漏
  */
 const clearAutoRefresh = () => {
   if (refreshTimer) {
@@ -234,13 +335,24 @@ const clearAutoRefresh = () => {
   }
 }
 
-// 组件挂载时初始化
+// ==================== 生命周期钩子 ====================
+
+/**
+ * 组件挂载时初始化
+ *
+ * 1. 首次获取留言列表
+ * 2. 启动自动刷新定时器
+ */
 onMounted(() => {
   fetchMessages()
   setupAutoRefresh()
 })
 
-// 组件卸载时清理
+/**
+ * 组件卸载时清理
+ *
+ * 清除定时器,防止内存泄漏
+ */
 onUnmounted(() => {
   clearAutoRefresh()
 })

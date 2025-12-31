@@ -1,0 +1,22 @@
+# 依赖
+node_modules
+package-lock.json
+yarn.lock
+
+# 构建输出
+dist
+build
+
+# 缓存
+.vite
+.cache
+coverage
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# 其他
+*.min.js
+*.min.css

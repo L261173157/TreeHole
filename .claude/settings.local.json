@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat:*)",
+      "Bash(cd:*)",
+      "Bash(docker compose up:*)",
+      "Bash(npm install:*)",
+      "Bash(docker compose:*)",
+      "Bash(chmod:*)",
+      "Bash(if exist srcnul del srcnul)"
+    ]
+  }
+}
