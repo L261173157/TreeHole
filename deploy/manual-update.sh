@@ -47,7 +47,27 @@ echo ""
 
 # 2. 拉取代码
 echo "📥 [2/7] 拉取最新代码..."
-git fetch origin
+
+# 设置超时时间为60秒
+timeout 60 git fetch origin
+FETCH_STATUS=$?
+
+if [ $FETCH_STATUS -eq 124 ]; then
+    echo "❌ 错误: git fetch 超时(60秒),网络连接可能存在问题"
+    echo "💡 建议:"
+    echo "   1. 检查网络连接"
+    echo "   2. 稍后重试"
+    echo "   3. 使用手动下载代码包的方式更新"
+    exit 1
+elif [ $FETCH_STATUS -ne 0 ]; then
+    echo "❌ 错误: git fetch 失败(退出码: $FETCH_STATUS)"
+    echo "💡 请检查:"
+    echo "   1. 网络连接是否正常"
+    echo "   2. Git仓库地址是否正确"
+    echo "   3. SSH密钥或凭据配置是否正确"
+    exit 1
+fi
+
 CURRENT_COMMIT=$(git rev-parse HEAD)
 REMOTE_COMMIT=$(git rev-parse origin/main)
 
@@ -57,7 +77,19 @@ else
     echo "📝 更新内容:"
     git log HEAD..origin/main --oneline
     echo ""
-    git pull origin main
+
+    # git pull 也设置超时
+    timeout 60 git pull origin main
+    PULL_STATUS=$?
+
+    if [ $PULL_STATUS -eq 124 ]; then
+        echo "❌ 错误: git pull 超时(60秒)"
+        exit 1
+    elif [ $PULL_STATUS -ne 0 ]; then
+        echo "❌ 错误: git pull 失败(退出码: $PULL_STATUS)"
+        exit 1
+    fi
+
     echo "✅ 代码已更新"
 fi
 echo ""
