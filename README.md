@@ -8,10 +8,10 @@
 ![Version](https://img.shields.io/badge/version-0.1.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Python](https://img.shields.io/badge/python-3.9+-yellow)
-![Node](https://img.shields.io/badge/node-18+-green)
-![GitHub Stars](https://img.shields.io/github/stars/YOUR_USERNAME/TreeHole?style=social)
+![Node](https://img.shields.io/badge/node-22+-green)
+![GitHub Stars](https://img.shields.io/github/stars/L261173157/TreeHole?style=social)
 
-[![CI/CD](https://github.com/YOUR_USERNAME/TreeHole/actions/workflows/deploy.yml/badge.svg)](https://github.com/YOUR_USERNAME/TreeHole/actions)
+[![CI/CD](https://github.com/L261173157/TreeHole/actions/workflows/deploy.yml/badge.svg)](https://github.com/L261173157/TreeHole/actions)
 
 ---
 
@@ -56,29 +56,44 @@ TreeHole/
 │   ├── database.py      # 数据库连接
 │   ├── logger.py        # 日志配置
 │   ├── config.py        # 配置管理
+│   ├── utils.py         # 工具函数(XSS防护等)
 │   ├── requirements.txt # Python依赖
 │   ├── pyproject.toml   # 项目配置
 │   └── tests/           # 后端测试
 │
 ├── src/                 # 前端代码
 │   ├── src/
-│   │   ├── components/  # Vue组件
-│   │   ├── config/      # API配置
-│   │   └── utils/       # 工具函数
-│   ├── index.html
-│   ├── package.json
+│   │   ├── components/  # Vue组件(MessageBoard.vue等)
+│   │   ├── App.vue      # 主应用组件
+│   │   └── main.js      # 入口文件
+│   ├── index.html       # HTML模板
+│   ├── package.json     # Node依赖
 │   ├── vite.config.js   # Vite配置
-│   ├── nginx.conf       # Nginx配置示例
+│   ├── .env.example     # 环境变量模板
+│   ├── .env.production  # 生产环境配置
 │   └── tests/           # 前端测试
+│
+├── deploy/              # 部署相关文件
+│   ├── git-deploy.sh    # Git自动部署脚本
+│   ├── start-production.sh  # 生产环境启动脚本
+│   ├── stop-production.sh   # 生产环境停止脚本
+│   ├── quick-deploy.sh  # 一键部署脚本
+│   ├── treehole-backend.service # systemd服务配置
+│   ├── DEPLOYMENT.md    # 传统部署指南
+│   └── GIT-DEPLOYMENT.md # Git部署详细指南
+│
+├── .github/             # GitHub配置
+│   └── workflows/
+│       └── deploy.yml   # GitHub Actions CI/CD配置
 │
 ├── start.bat            # Windows启动脚本
 ├── start.sh             # Linux/Mac启动脚本
 ├── stop.bat             # Windows停止脚本
 ├── stop.sh              # Linux/Mac停止脚本
-├── .env.example         # 环境变量模板
-├── .gitignore          # Git忽略规则
-├── LICENSE             # MIT许可证
-└── README.md           # 项目文档
+├── .gitignore           # Git忽略规则
+├── LICENSE              # MIT许可证
+├── CONTRIBUTING.md      # 贡献指南
+└── README.md            # 项目文档(本文件)
 ```
 
 ## 🚀 快速开始
@@ -128,13 +143,13 @@ stop.bat
 确保你的系统已安装以下软件:
 
 - **Python**: 3.9 或更高版本 ([下载地址](https://www.python.org/downloads/))
-- **Node.js**: 18 或更高版本 ([下载地址](https://nodejs.org/))
+- **Node.js**: 22 或更高版本 ([下载地址](https://nodejs.org/))
 - **npm**: 随 Node.js 一起安装,或使用 yarn/pnpm
 
 检查版本:
 ```bash
 python --version  # 应该显示 Python 3.9+
-node --version    # 应该显示 v18+
+node --version    # 应该显示 v22+
 npm --version     # 应该显示 9+
 ```
 
@@ -290,7 +305,7 @@ npm run dev
 git init
 git add .
 git commit -m "Initial commit"
-git remote add origin https://github.com/YOUR_USERNAME/TreeHole.git
+git remote add origin https://github.com/L261173157/TreeHole.git
 git push -u origin main
 ```
 

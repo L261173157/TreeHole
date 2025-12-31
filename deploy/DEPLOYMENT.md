@@ -1,11 +1,13 @@
-# TreeHole Ubuntu服务器部署指南
+# TreeHole 服务器部署指南(传统方式)
+
+> **推荐**: 如果你是开源项目部署,建议使用 [Git + GitHub Actions 自动部署](GIT-DEPLOYMENT.md)
 
 ## 📋 部署准备
 
 ### 服务器要求
 - Ubuntu 20.04+ / Debian 10+
 - Python 3.9+
-- Node.js 18+
+- Node.js 22+
 - 至少 512MB RAM
 - 公网IP地址
 
@@ -35,9 +37,9 @@ sudo apt update
 sudo apt install -y python3 python3-pip python3-venv
 ```
 
-#### 安装 Node.js 18+
+#### 安装 Node.js 22+
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt install -y nodejs
 ```
 
@@ -66,16 +68,21 @@ nano deploy/production.env
 
 ```bash
 # 如果没有域名,直接使用IP地址
-CORS_ORIGINS=http://你的服务器IP:5173,http://你的服务器IP:8000
+CORS_ORIGINS=http://你的服务器IP
 
-# 前端API地址
-VITE_API_BASE_URL=http://你的服务器IP:8000
+# 注意:生产环境前端使用nginx代理,API地址为相对路径
+# VITE_API_BASE_URL=/api (在src/.env.production中配置)
 ```
 
 示例:
 ```bash
-CORS_ORIGINS=http://123.45.67.89:5173,http://123.45.67.89:8000
-VITE_API_BASE_URL=http://123.45.67.89:8000
+CORS_ORIGINS=http://123.57.82.112
+```
+
+注意:前端构建时会使用 `src/.env.production` 文件中的配置:
+
+```env
+VITE_API_BASE_URL=/api
 ```
 
 ### 5. 配置防火墙
@@ -88,16 +95,14 @@ sudo ufw allow 22/tcp
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 
-# 如果直接使用端口访问,允许相应端口
-sudo ufw allow 5173/tcp  # 前端端口
-sudo ufw allow 8000/tcp  # 后端端口
-
 # 启用防火墙
 sudo ufw enable
 
 # 查看状态
 sudo ufw status
 ```
+
+**注意**: 如果使用nginx反向代理,不需要开放5173和8000端口
 
 ### 6. 启动服务
 
@@ -144,11 +149,11 @@ sudo systemctl status treehole-backend
 sudo nano /etc/nginx/sites-available/treehole
 ```
 
-添加以下内容(修改为你的服务器IP):
+添加以下内容(修改`server_name`为你的服务器IP或域名):
 ```nginx
 server {
     listen 80;
-    server_name 你的服务器IP;
+    server_name 你的服务器IP;  # 例如: 123.57.82.112
 
     # 前端静态文件
     location / {
@@ -164,6 +169,13 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
+
+    # API文档代理(可选)
+    location /docs {
+        proxy_pass http://127.0.0.1:8000/docs;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
 }
 ```
 
@@ -172,7 +184,10 @@ server {
 # 创建符号链接
 sudo ln -s /etc/nginx/sites-available/treehole /etc/nginx/sites-enabled/
 
-# 构建前端
+# 删除默认配置(如果存在)
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# 构建前端(会使用.env.production配置)
 cd /opt/treehole/src
 npm install
 npm run build
@@ -188,9 +203,20 @@ sudo systemctl restart nginx
 
 现在你可以通过以下地址访问:
 
-- **前端**: `http://你的服务器IP` (使用nginx) 或 `http://你的服务器IP:5173` (直接访问)
-- **后端API**: `http://你的服务器IP:8000` 或 `http://你的服务器IP/api/` (通过nginx代理)
-- **API文档**: `http://你的服务器IP:8000/docs`
+- **前端**: `http://你的服务器IP` (使用nginx)
+- **后端API**: `http://你的服务器IP/api/` (通过nginx代理)
+- **API文档**: `http://你的服务器IP/docs` (通过nginx代理)
+
+**验证部署**:
+
+```bash
+# 检查后端健康状态
+curl http://localhost:8000/ping
+
+# 应该返回: {"status":"ok","message":"服务正常运行"}
+```
+
+在浏览器访问 `http://你的服务器IP`,尝试发布一条留言验证功能是否正常。
 
 ## 🔐 可选: 配置HTTPS(使用Let's Encrypt)
 
@@ -257,13 +283,17 @@ sudo tail -f /var/log/nginx/error.log
 - 检查云服务商安全组规则(阿里云/腾讯云/AWS等)
 
 **问题2**: CORS错误
-- 确认 `deploy/production.env` 中的 `CORS_ORIGINS` 包含你的访问地址
-- 重启后端服务
 
-**问题3**: 前端无法连接后端
-- 检查前端配置的 `VITE_API_BASE_URL`
+- 确认后端环境变量中的 `CORS_ORIGINS` 包含你的访问地址
+- 重启后端服务: `sudo systemctl restart treehole-backend`
+
+**问题3**: 前端无法连接后端("Failed to fetch"错误)
+
+- 检查前端 `src/.env.production` 文件中 `VITE_API_BASE_URL=/api`
+- 重新构建前端: `cd /opt/treehole/src && npm run build`
 - 确认后端服务正在运行
-- 查看浏览器控制台的网络请求
+- 检查nginx配置中 `/api/` 的代理设置
+- 查看浏览器控制台(F12)的网络请求
 
 ## 📝 更新部署
 
