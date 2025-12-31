@@ -1,0 +1,58 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout代码
+        uses: actions/checkout@v3
+
+      - name: 配置SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 添加服务器到known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 部署到服务器
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'ENDSSH'
+            cd /opt/treehole
+
+            # 拉取最新代码
+            git fetch origin
+            git pull origin main
+
+            # 备份数据库
+            cp backend/treehole.db backend/treehole.db.backup.$(date +%Y%m%d_%H%M%S)
+
+            # 安装后端依赖
+            cd backend
+            source venv/bin/activate
+            pip install -r requirements.txt
+            deactivate
+
+            # 构建前端
+            cd ../src
+            npm install
+            npm run build
+
+            # 重启服务
+            sudo systemctl restart treehole-backend
+          ENDSSH
+
+      - name: 健康检查
+        run: |
+          sleep 5
+          curl -f http://${{ secrets.SERVER_HOST }}/ping || exit 1

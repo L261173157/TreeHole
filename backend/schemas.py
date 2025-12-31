@@ -46,17 +46,21 @@ class MessageCreate(MessageBase):
 class Message(MessageBase):
     """
     留言响应模型
-    
+
     Attributes:
         id (int): 留言唯一标识符
         timestamp (datetime): 留言创建时间
         like_count (int): 点赞数量
         dislike_count (int): 踩数量
+        reply_count (int): 回复数量
+        parent_id (Optional[int]): 父留言ID
     """
     id: int
     timestamp: datetime
     like_count: int
     dislike_count: int
+    reply_count: int
+    parent_id: Optional[int] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True

@@ -5,30 +5,44 @@
   <p>一个简单、现代化的匿名留言板应用</p>
 </div>
 
+![Version](https://img.shields.io/badge/version-0.1.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Python](https://img.shields.io/badge/python-3.9+-yellow)
+![Node](https://img.shields.io/badge/node-18+-green)
+![GitHub Stars](https://img.shields.io/github/stars/YOUR_USERNAME/TreeHole?style=social)
+
+[![CI/CD](https://github.com/YOUR_USERNAME/TreeHole/actions/workflows/deploy.yml/badge.svg)](https://github.com/YOUR_USERNAME/TreeHole/actions)
+
 ---
 
 ## ✨ 功能特性
 
 - 🎭 **匿名留言** - 无需注册即可发布留言
+- 💬 **留言回复** - 支持对留言进行回复,可展开/收起
 - 📝 **字数限制** - 每条留言最多140字符
 - 👍 **互动功能** - 支持点赞和点踩
 - 🔄 **自动刷新** - 前端每30秒自动获取最新留言
 - 📱 **响应式设计** - 适配桌面和移动设备
 - ⚡ **实时更新** - 即时查看留言互动结果
+- 🔒 **安全防护** - XSS攻击防护,CORS配置
 
 ## 🛠️ 技术栈
 
 ### 后端
 - **框架**: FastAPI 0.104.1 - 高性能异步Web框架
-- **数据库**: SQLite + SQLAlchemy 2.0 - ORM框架
-- **数据验证**: Pydantic 2.5.0
-- **服务器**: Uvicorn - ASGI服务器
+- **数据库**: SQLite + SQLAlchemy 2.0.23 - ORM框架
+- **数据验证**: Pydantic 2.10.0 - 支持Python 3.13
+- **配置管理**: Pydantic Settings 2.6.0
+- **服务器**: Uvicorn 0.24.0 - ASGI服务器
+- **测试**: pytest 7.4.3 + pytest-asyncio 0.21.1
+- **速率限制**: slowapi 0.1.9
 
 ### 前端
 - **框架**: Vue 3 - 渐进式JavaScript框架
-- **构建工具**: Vite - 下一代前端构建工具
+- **构建工具**: Vite 5.0.0 - 下一代前端构建工具
 - **UI组件库**: Element Plus - Vue 3组件库
 - **HTTP客户端**: Fetch API
+- **代码规范**: ESLint + Prettier
 
 ## 📦 项目结构
 
@@ -42,25 +56,74 @@ TreeHole/
 │   ├── database.py      # 数据库连接
 │   ├── logger.py        # 日志配置
 │   ├── config.py        # 配置管理
-│   └── requirements.txt # Python依赖
+│   ├── requirements.txt # Python依赖
+│   ├── pyproject.toml   # 项目配置
+│   └── tests/           # 后端测试
 │
-├── frontend/            # 前端代码
-│   └── src/
-│       ├── src/
-│       │   ├── components/    # Vue组件
-│       │   ├── config/        # API配置
-│       │   └── utils/         # 工具函数
-│       ├── index.html
-│       └── package.json
+├── src/                 # 前端代码
+│   ├── src/
+│   │   ├── components/  # Vue组件
+│   │   ├── config/      # API配置
+│   │   └── utils/       # 工具函数
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.js   # Vite配置
+│   ├── nginx.conf       # Nginx配置示例
+│   └── tests/           # 前端测试
 │
+├── start.bat            # Windows启动脚本
+├── start.sh             # Linux/Mac启动脚本
+├── stop.bat             # Windows停止脚本
+├── stop.sh              # Linux/Mac停止脚本
 ├── .env.example         # 环境变量模板
 ├── .gitignore          # Git忽略规则
+├── LICENSE             # MIT许可证
 └── README.md           # 项目文档
 ```
 
 ## 🚀 快速开始
 
-### 前置要求
+### 方式一:使用启动脚本(推荐)
+
+项目提供了便捷的启动脚本,可以自动完成环境配置和服务启动。
+
+#### Windows
+
+```bash
+# 双击运行或在命令行中执行
+start.bat
+```
+
+#### Linux/Mac
+
+```bash
+# 添加执行权限
+chmod +x start.sh
+
+# 运行启动脚本
+./start.sh
+```
+
+启动脚本会自动:
+- 检查 Python 和 Node.js 是否安装
+- 创建 Python 虚拟环境
+- 安装后端和前端依赖
+- 启动后端和前端服务
+
+**停止服务**:
+```bash
+# Windows
+stop.bat
+
+# Linux/Mac
+./stop.sh
+```
+
+### 方式二:手动启动
+
+如果你需要更多控制,可以选择手动启动。
+
+#### 前置要求
 
 确保你的系统已安装以下软件:
 
@@ -75,17 +138,9 @@ node --version    # 应该显示 v18+
 npm --version     # 应该显示 9+
 ```
 
-### 1. 克隆项目
+#### 2. 后端设置
 
-```bash
-# 克隆仓库
-git clone <repository-url>
-cd TreeHole
-```
-
-### 2. 后端设置
-
-#### 2.1 创建虚拟环境
+##### 2.1 创建虚拟环境
 
 ```bash
 # 进入后端目录
@@ -156,9 +211,9 @@ INFO:     Application startup complete.
 - **ReDoc文档**: http://127.0.0.1:8000/redoc
 - **健康检查**: http://127.0.0.1:8000/ping
 
-### 3. 前端设置
+#### 3. 前端设置
 
-#### 3.1 安装依赖
+##### 3.1 安装依赖
 
 打开**新的终端窗口**(保持后端运行):
 
@@ -207,7 +262,7 @@ npm run dev
 
 在浏览器中打开: **http://localhost:5173**
 
-### 4. 验证安装
+#### 4. 验证安装
 
 1. 打开浏览器访问 http://localhost:5173
 2. 尝试发布一条留言
@@ -219,7 +274,40 @@ npm run dev
 
 ## 📦 生产环境部署
 
-### 方案一:传统服务器部署
+> **提示**: 开发环境建议使用项目提供的启动脚本(`start.bat`/`start.sh`)
+
+### 🚀 推荐部署方式
+
+#### 方式一: Git + GitHub Actions 自动部署 (推荐开源项目)
+
+适合开源项目或团队协作,支持自动化CI/CD流程。
+
+**快速开始**:
+
+1. **推送代码到GitHub**:
+
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git remote add origin https://github.com/YOUR_USERNAME/TreeHole.git
+git push -u origin main
+```
+
+2. **服务器首次部署**:
+
+```bash
+ssh user@your-server
+sudo bash deploy/git-deploy.sh main
+```
+
+3. **配置GitHub Actions自动部署**:
+   - 在GitHub仓库设置中添加Secrets (SSH私钥、服务器IP等)
+   - 推送代码自动触发部署
+
+详细文档: [Git部署指南](deploy/GIT-DEPLOYMENT.md)
+
+#### 方式二:传统服务器部署
 
 #### 后端部署
 
@@ -575,16 +663,16 @@ npm run test
 
 ## 🔒 安全说明
 
-当前版本为开发版本,以下安全措施已在代码中实现:
+当前版本已实现的安全措施:
 
 - ✅ CORS配置(可通过环境变量设置)
 - ✅ 输入验证(前端和后端双重验证)
+- ✅ XSS防护(HTML标签转义)
 - ✅ 环境变量管理(.env文件不提交到Git)
 - ✅ .gitignore配置(保护敏感信息)
 
 **待实现的安全措施**:
 - ⏳ 速率限制(防止DDoS和垃圾信息)
-- ⏳ XSS防护(输入内容过滤)
 - ⏳ CSRF保护
 - ⏳ 用户认证/授权
 - ⏳ HTTPS强制
@@ -594,7 +682,6 @@ npm run test
 1. SQLite 数据库在高并发下性能有限,生产环境建议使用 MySQL/PostgreSQL
 2. 没有用户认证,无法防止刷票
 3. 点赞/点踩没有次数限制
-4. 回复功能已在代码中移除
 
 ## 🗺️ 未来计划
 

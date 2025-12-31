@@ -140,11 +140,11 @@ def likeMessage(db: Session, messageId: int) -> Optional[models.Message]:
 def dislikeMessage(db: Session, messageId: int) -> Optional[models.Message]:
     """
     给留言踩
-    
+
     Args:
         db (Session): 数据库会话
         messageId (int): 留言ID
-        
+
     Returns:
         Optional[Message]: 更新后的留言对象，失败时返回None
     """
@@ -163,3 +163,26 @@ def dislikeMessage(db: Session, messageId: int) -> Optional[models.Message]:
         logError(logger, e, f"踩失败 ID: {messageId}")
         db.rollback()
         return None
+
+def getReplies(db: Session, parentId: int) -> List[models.Message]:
+    """
+    获取指定留言的所有回复
+
+    Args:
+        db (Session): 数据库会话
+        parentId (int): 父留言ID
+
+    Returns:
+        List[Message]: 回复列表
+    """
+    try:
+        replies = (db.query(models.Message)
+                   .filter(models.Message.parent_id == parentId)
+                   .order_by(models.Message.id.asc())
+                   .all())
+
+        logInfo(logger, f"成功获取留言 {parentId} 的 {len(replies)} 条回复")
+        return replies
+    except Exception as e:
+        logError(logger, e, f"获取回复失败 父留言ID: {parentId}")
+        return []

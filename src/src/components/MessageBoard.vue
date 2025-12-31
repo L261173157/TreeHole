@@ -1,333 +1,337 @@
-<!--
-  TreeHole 留言板组件
-
-  这是一个匿名留言板的主要界面组件,提供以下功能:
-  - 发布新留言(最多140字符)
-  - 查看留言列表(自动刷新)
-  - 点赞/点踩留言
-
-  技术栈:
-  - Vue 3 Composition API
-  - Element Plus UI组件库
-  - Fetch API 进行数据请求
-
-  特性:
-  - 响应式设计
-  - 自动刷新(30秒间隔)
-  - 输入验证
-  - 错误处理和用户提示
--->
 <template>
   <div class="message-board">
     <div class="main-content">
-      <el-card class="form-card" shadow="always">
-        <template #header>
-          <div class="card-header">
-            <el-avatar icon="el-icon-user" class="avatar" />
-            <span class="form-title">发布新动态</span>
-          </div>
-        </template>
-        <el-form @submit.prevent="submitMessage">
-          <el-form-item>
-            <el-input
-              v-model="newMessage"
-              maxlength="140"
-              show-word-limit
-              type="textarea"
-              :rows="3"
-              placeholder="此刻你想说点什么..."
-              resize="none"
-              class="weibo-input"
-            />
-          </el-form-item>
-          <el-form-item style="margin-bottom: 0;">
-            <el-button 
-              type="primary" 
-              :disabled="!newMessage.trim()" 
-              @click="submitMessage"
-              style="width: 100%;"
-              size="large"
-            >
-              <el-icon><Promotion /></el-icon>
-              发布
-            </el-button>
-          </el-form-item>
-        </el-form>
-      </el-card>
+      <!-- 标题 -->
+      <header class="app-header">
+        <h1 class="app-title">树洞</h1>
+        <p class="app-subtitle">匿名分享你的想法</p>
+      </header>
 
-      <el-card class="list-card" shadow="hover">
-        <template #header>
-          <div class="card-header">
-            <span class="list-title">最新动态</span>
-            <el-badge :value="messages.length" class="item" type="primary" />
-          </div>
-        </template>
-        <div class="scroll-list">
-          <el-empty v-if="messages.length === 0" description="暂无内容，快来发表第一条吧！">
-            <el-icon style="font-size: 60px; color: #409EFF;"><ChatDotRound /></el-icon>
-          </el-empty>
-          <div v-else class="message-list">
-            <div
-              v-for="msg in messages"
-              :key="msg.id"
-              class="message-item"
-            >
-              <div class="message-header">
-                <el-avatar icon="el-icon-user" class="avatar" />
-                <div class="meta">
-                  <el-tag size="small" type="info">#{{ msg.id }}</el-tag>
-                  <span class="timestamp">{{ formatTime(msg.timestamp) }}</span>
+      <!-- 发布区域 -->
+      <div class="create-section">
+        <textarea
+          v-model="newMessage"
+          class="message-input"
+          placeholder="分享你的想法..."
+          maxlength="140"
+          @input="updateCount"
+        />
+        <div class="input-footer">
+          <span class="char-count" :class="{ 'near-limit': remainingChars <= 20 }">
+            {{ remainingChars }}/140
+          </span>
+          <button
+            class="send-btn"
+            :disabled="!newMessage.trim() || isSubmitting"
+            @click="submitMessage"
+          >
+            {{ isSubmitting ? '发布中...' : '发布' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- 留言列表 -->
+      <div class="messages-section">
+        <div v-if="messages.length === 0" class="empty-state">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p>还没有留言,来发表第一条吧!</p>
+        </div>
+
+        <div v-else class="message-list">
+          <article v-for="msg in messages" :key="msg.id" class="message-card">
+            <!-- 留言内容 -->
+            <div class="message-content">{{ msg.content }}</div>
+
+            <!-- 留言元信息 -->
+            <div class="message-meta">
+              <span class="message-id">#{{ msg.id }}</span>
+              <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="message-actions">
+              <button class="action-btn" @click="likeMessage(msg.id)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>{{ msg.like_count || 0 }}</span>
+              </button>
+
+              <button class="action-btn" @click="dislikeMessage(msg.id)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>{{ msg.dislike_count || 0 }}</span>
+              </button>
+
+              <button class="action-btn" @click="toggleReplies(msg.id)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>{{ msg.reply_count || 0 }}</span>
+              </button>
+            </div>
+
+            <!-- 回复区域 -->
+            <div v-if="expandedReplies.has(msg.id)" class="replies-section">
+              <!-- 回复列表 -->
+              <div v-if="loadingReplies.has(msg.id)" class="loading-replies">
+                加载中...
+              </div>
+              <div v-else-if="replies[msg.id] && replies[msg.id].length > 0" class="replies-list">
+                <div v-for="reply in replies[msg.id]" :key="reply.id" class="reply-item">
+                  <div class="reply-content">{{ reply.content }}</div>
+                  <div class="reply-meta">
+                    <span class="reply-time">{{ formatTime(reply.timestamp) }}</span>
+                  </div>
                 </div>
               </div>
-              <div class="message-content">{{ msg.content }}</div>
-              <div class="message-actions">
-                <el-button size="small" type="success" plain @click="likeMessage(msg.id)">
-                  <el-icon><CaretTop /></el-icon>
-                  {{ msg.like_count }}
-                </el-button>
-                <el-button size="small" type="danger" plain @click="dislikeMessage(msg.id)">
-                  <el-icon><CaretBottom /></el-icon>
-                  {{ msg.dislike_count }}
-                </el-button>
+              <div v-else class="no-replies">
+                还没有回复,快来抢沙发!
+              </div>
+
+              <!-- 回复输入框 -->
+              <div class="reply-input-section">
+                <textarea
+                  :ref="el => replyInputRefs[msg.id] = el"
+                  v-model="replyContents[msg.id]"
+                  class="reply-input"
+                  placeholder="写下你的回复..."
+                  maxlength="140"
+                  rows="2"
+                />
+                <div class="reply-actions">
+                  <span class="char-count-small">{{ 140 - (replyContents[msg.id]?.length || 0) }}</span>
+                  <button
+                    class="reply-btn"
+                    :disabled="!replyContents[msg.id]?.trim() || submittingReplies.has(msg.id)"
+                    @click="submitReply(msg.id)"
+                  >
+                    {{ submittingReplies.has(msg.id) ? '发送中...' : '发送' }}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          </article>
         </div>
-      </el-card>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-/**
- * TreeHole 留言板组件逻辑
- *
- * 主要功能:
- * 1. 留言管理 - 创建、读取留言
- * 2. 交互功能 - 点赞、点踩
- * 3. 自动刷新 - 定时获取最新留言
- * 4. 输入验证 - 确保留言内容合法
- */
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
-import { ref, onMounted, onUnmounted } from 'vue'
-import { ChatDotRound, CaretTop, CaretBottom, Promotion } from '@element-plus/icons-vue'
-import { API_ENDPOINTS, getApiUrl, SUCCESS_MESSAGES, MESSAGE_CONFIG } from '../config/api.js'
-import {
-  showErrorMessage,
-  showSuccessMessage,
-  retryApiCall,
-  validateInput
-} from '../utils/errorHandler.js'
-
-// ==================== 响应式状态 ====================
-
-// 新留言输入内容
 const newMessage = ref('')
-
-// 留言列表数据
 const messages = ref([])
-
-// 加载状态 - 用于防止重复请求
+const isSubmitting = ref(false)
 const isLoading = ref(false)
 
-// 提交状态 - 用于防止重复提交
-const isSubmitting = ref(false)
+// 回复相关状态
+const expandedReplies = ref(new Set())
+const replies = ref({})
+const loadingReplies = ref(new Set())
+const submittingReplies = ref(new Set())
+const replyContents = ref({})
+const replyInputRefs = ref({})
 
-// 自动刷新定时器
 let refreshTimer = null
 
-// ==================== API调用函数 ====================
+// 计算剩余字符数
+const remainingChars = computed(() => 140 - (newMessage.value?.length || 0))
 
-/**
- * 获取留言列表
- *
- * 从服务器获取最新的留言列表并更新界面
- * 使用isLoading状态防止并发请求
- */
+// API配置
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+
+// 获取留言列表
 const fetchMessages = async () => {
+  if (isLoading.value) return
+  isLoading.value = true
+
   try {
-    isLoading.value = true
+    const res = await fetch(`${API_BASE}/messages/`)
+    if (!res.ok) throw new Error('获取留言失败')
 
-    // 发起GET请求获取留言列表
-    const res = await fetch(getApiUrl(API_ENDPOINTS.MESSAGES))
-
-    // 检查HTTP响应状态
-    if (!res.ok) {
-      const errorData = await res.json()
-      const error = new Error(errorData.detail || '获取留言失败')
-      error.response = { status: res.status, data: errorData }
-      throw error
-    }
-
-    // 解析响应数据
     const response = await res.json()
     messages.value = response.data || []
-    console.log(`成功获取 ${messages.value.length} 条留言`)
   } catch (error) {
-    // 显示错误提示给用户
-    showErrorMessage(error, '获取留言列表')
+    console.error('获取留言失败:', error)
   } finally {
     isLoading.value = false
   }
 }
 
-/**
- * 提交新留言
- *
- * 验证用户输入并发送到服务器创建新留言
- * 成功后清空输入框并刷新留言列表
- */
+// 发布留言
 const submitMessage = async () => {
-  // 去除首尾空格
   const content = newMessage.value.trim()
+  if (!content) return
 
-  // 验证输入内容(长度、格式等)
-  const validation = validateInput(content, MESSAGE_CONFIG.MAX_LENGTH, MESSAGE_CONFIG.MIN_LENGTH)
-  if (!validation.isValid) {
-    showErrorMessage(new Error(validation.message), '输入验证')
-    return
-  }
+  isSubmitting.value = true
 
   try {
-    isSubmitting.value = true
-
-    // 发起POST请求创建留言
-    const res = await fetch(getApiUrl(API_ENDPOINTS.MESSAGES), {
+    const res = await fetch(`${API_BASE}/messages/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content })
     })
 
-    // 检查HTTP响应状态
     if (!res.ok) {
-      const errorData = await res.json()
-      const error = new Error(errorData.detail || '发布留言失败')
-      error.response = { status: res.status, data: errorData }
-      throw error
+      const error = await res.json()
+      throw new Error(error.detail || '发布失败')
     }
 
-    // 显示成功提示
-    showSuccessMessage(SUCCESS_MESSAGES.MESSAGE_CREATED)
-
-    // 清空输入框
     newMessage.value = ''
-
-    // 刷新留言列表以显示新留言
     await fetchMessages()
   } catch (error) {
-    showErrorMessage(error, '发布留言')
+    alert(error.message || '发布失败')
   } finally {
     isSubmitting.value = false
   }
 }
 
-/**
- * 点赞留言
- *
- * 增加指定留言的点赞计数
- * 点赞成功后刷新列表以更新UI显示
- *
- * @param {number} id - 要点赞的留言ID
- */
+// 点赞
 const likeMessage = async (id) => {
   try {
-    // 发起POST请求进行点赞
-    const res = await fetch(getApiUrl(API_ENDPOINTS.LIKE_MESSAGE(id)), { method: 'POST' })
-
-    if (!res.ok) {
-      const errorData = await res.json()
-      const error = new Error(errorData.detail || '点赞失败')
-      error.response = { status: res.status, data: errorData }
-      throw error
-    }
-
-    showSuccessMessage(SUCCESS_MESSAGES.MESSAGE_LIKED)
-
-    // 刷新列表以更新点赞数显示
+    await fetch(`${API_BASE}/messages/${id}/like`, { method: 'POST' })
     await fetchMessages()
   } catch (error) {
-    showErrorMessage(error, '点赞操作')
+    console.error('点赞失败:', error)
   }
 }
 
-/**
- * 点踩留言
- *
- * 增加指定留言的点踩计数
- * 点踩成功后刷新列表以更新UI显示
- *
- * @param {number} id - 要点踩的留言ID
- */
+// 点踩
 const dislikeMessage = async (id) => {
   try {
-    // 发起POST请求进行点踩
-    const res = await fetch(getApiUrl(API_ENDPOINTS.DISLIKE_MESSAGE(id)), { method: 'POST' })
-
-    if (!res.ok) {
-      const errorData = await res.json()
-      const error = new Error(errorData.detail || '踩失败')
-      error.response = { status: res.status, data: errorData }
-      throw error
-    }
-
-    showSuccessMessage(SUCCESS_MESSAGES.MESSAGE_DISLIKED)
-
-    // 刷新列表以更新点踩数显示
+    await fetch(`${API_BASE}/messages/${id}/dislike`, { method: 'POST' })
     await fetchMessages()
   } catch (error) {
-    showErrorMessage(error, '踩操作')
+    console.error('点踩失败:', error)
   }
 }
 
-// ==================== 工具函数 ====================
+// 切换回复展开/收起
+const toggleReplies = async (messageId) => {
+  if (expandedReplies.value.has(messageId)) {
+    expandedReplies.value.delete(messageId)
+  } else {
+    expandedReplies.value.add(messageId)
 
-/**
- * 格式化时间显示
- *
- * 将ISO时间戳转换为本地化的中文时间格式
- * 格式示例: 2025/12/30 14:30
- *
- * @param {string} timestamp - ISO格式的时间戳
- * @returns {string} 格式化后的时间字符串,如果解析失败则返回错误提示
- */
+    // 如果还没有加载过回复,则加载
+    if (!replies.value[messageId]) {
+      await loadReplies(messageId)
+    }
+  }
+
+  // 强制更新
+  expandedReplies.value = new Set(expandedReplies.value)
+}
+
+// 加载回复列表
+const loadReplies = async (messageId) => {
+  loadingReplies.value.add(messageId)
+
+  try {
+    const res = await fetch(`${API_BASE}/messages/${messageId}/replies`)
+    if (!res.ok) throw new Error('获取回复失败')
+
+    const response = await res.json()
+    replies.value[messageId] = response.data || []
+  } catch (error) {
+    console.error('获取回复失败:', error)
+    replies.value[messageId] = []
+  } finally {
+    loadingReplies.value.delete(messageId)
+    loadingReplies.value = new Set(loadingReplies.value)
+  }
+}
+
+// 提交回复
+const submitReply = async (messageId) => {
+  const content = replyContents.value[messageId]?.trim()
+  if (!content) return
+
+  submittingReplies.value.add(messageId)
+
+  try {
+    const res = await fetch(`${API_BASE}/messages/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content,
+        parent_id: messageId
+      })
+    })
+
+    if (!res.ok) {
+      const error = await res.json()
+      throw new Error(error.detail || '回复失败')
+    }
+
+    // 清空回复输入框
+    replyContents.value[messageId] = ''
+
+    // 重新加载回复列表
+    await loadReplies(messageId)
+
+    // 重新加载主列表以更新回复数
+    await fetchMessages()
+  } catch (error) {
+    alert(error.message || '回复失败')
+  } finally {
+    submittingReplies.value.delete(messageId)
+    submittingReplies.value = new Set(submittingReplies.value)
+  }
+}
+
+// 格式化时间
 const formatTime = (timestamp) => {
   try {
-    return new Date(timestamp).toLocaleString('zh-CN', {
-      year: 'numeric',
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diff = now - date
+
+    // 小于1分钟
+    if (diff < 60000) {
+      return '刚刚'
+    }
+
+    // 小于1小时
+    if (diff < 3600000) {
+      return `${Math.floor(diff / 60000)}分钟前`
+    }
+
+    // 小于24小时
+    if (diff < 86400000) {
+      return `${Math.floor(diff / 3600000)}小时前`
+    }
+
+    // 大于24小时,显示完整日期
+    return date.toLocaleDateString('zh-CN', {
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit'
     })
   } catch (error) {
-    console.error('时间格式化错误:', error)
-    return '时间格式错误'
+    return ''
   }
 }
 
-// ==================== 自动刷新管理 ====================
-
-/**
- * 设置自动刷新定时器
- *
- * 每隔指定时间(默认30秒)自动刷新留言列表
- * 只在没有进行其他操作(加载/提交)时才执行刷新
- * 这样可以避免并发请求和重复操作
- */
-const setupAutoRefresh = () => {
-  refreshTimer = setInterval(() => {
-    // 检查是否正在加载或提交,避免并发请求
-    if (!isLoading.value && !isSubmitting.value) {
-      fetchMessages()
-    }
-  }, MESSAGE_CONFIG.REFRESH_INTERVAL)  // 使用配置文件中的刷新间隔
+const updateCount = () => {
+  // 触发计算属性更新
 }
 
-/**
- * 清除自动刷新定时器
- *
- * 组件卸载时必须清除定时器,防止内存泄漏
- */
+// 自动刷新
+const setupAutoRefresh = () => {
+  refreshTimer = setInterval(() => {
+    if (!isLoading.value) {
+      fetchMessages()
+    }
+  }, 30000)
+}
+
 const clearAutoRefresh = () => {
   if (refreshTimer) {
     clearInterval(refreshTimer)
@@ -335,24 +339,11 @@ const clearAutoRefresh = () => {
   }
 }
 
-// ==================== 生命周期钩子 ====================
-
-/**
- * 组件挂载时初始化
- *
- * 1. 首次获取留言列表
- * 2. 启动自动刷新定时器
- */
 onMounted(() => {
   fetchMessages()
   setupAutoRefresh()
 })
 
-/**
- * 组件卸载时清理
- *
- * 清除定时器,防止内存泄漏
- */
 onUnmounted(() => {
   clearAutoRefresh()
 })
@@ -360,161 +351,323 @@ onUnmounted(() => {
 
 <style scoped>
 .message-board {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center; /* 新增：垂直居中主内容 */
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%);
-  padding: 32px 0 0 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  text-align: left;
+}
+
+.message-board * {
+  text-align: left !important;
 }
 
 .main-content {
-  width: 480px;
-  max-width: 96vw;
+  width: 100%;
+  max-width: 600px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  margin: 0 auto; /* 新增：水平居中 */
+  gap: 20px;
 }
 
-.form-card {
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 2px 16px 0 rgba(0,0,0,0.04);
-  margin-bottom: 0;
+/* 标题区域 */
+.app-header {
+  text-align: left;
+  color: white;
+  margin-bottom: 8px;
 }
 
-.form-title {
-  font-size: 18px;
-  font-weight: bold;
-  margin-left: 8px;
+.app-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  letter-spacing: 2px;
 }
 
-.weibo-input {
-  font-size: 16px;
-  border-radius: 12px;
-}
-
-.list-card {
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 2px 16px 0 rgba(0,0,0,0.04);
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.list-title {
-  font-size: 18px;
-  font-weight: bold;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.scroll-list {
-  flex: 1;
-  overflow-y: scroll;
-  overflow-x: hidden;
-  height: 420px;
-  padding: 10px 16px;
+.app-subtitle {
+  font-size: 14px;
   margin: 0;
-  background: none;
+  opacity: 0.9;
+  font-weight: 300;
 }
 
-.message-list {
+/* 创建区域 */
+.create-section {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.message-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  font-family: inherit;
+  resize: none;
+  min-height: 80px;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.message-input::placeholder {
+  color: #999;
+}
+
+.input-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.char-count {
+  font-size: 14px;
+  color: #999;
+}
+
+.char-count.near-limit {
+  color: #f56c6c;
+  font-weight: 500;
+}
+
+.send-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 28px;
+  border-radius: 20px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.send-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+.send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 留言区域 */
+.messages-section {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
-.message-item {
-  padding: 18px 16px 12px 16px;
-  background: #f9fafb;
-  border-radius: 14px;
-  border: 1px solid #e5e7eb;
-  transition: box-shadow 0.2s;
-  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.03);
+.empty-state {
+  background: white;
+  border-radius: 16px;
+  padding: 60px 20px;
+  text-align: left;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-.message-item:hover {
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-  background: #fff;
+.empty-state svg {
+  color: #667eea;
+  margin-bottom: 16px;
 }
 
-.message-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 6px;
+.empty-state p {
+  color: #666;
+  font-size: 16px;
 }
 
-.avatar {
-  background: #e0e7ef;
-  color: #409EFF;
+/* 留言卡片 */
+.message-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.timestamp {
-  font-size: 12px;
-  color: #909399;
+.message-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.15);
 }
 
 .message-content {
-  font-size: 15px;
-  line-height: 1.7;
-  color: #303133;
-  margin-bottom: 10px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #333;
+  margin-bottom: 12px;
   word-break: break-word;
 }
 
+.message-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.message-id {
+  font-size: 13px;
+  color: #999;
+  font-weight: 500;
+}
+
+.message-time {
+  font-size: 13px;
+  color: #999;
+}
+
+/* 操作按钮 */
 .message-actions {
   display: flex;
   gap: 8px;
 }
 
-:deep(.el-textarea__inner) {
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  background: #f5f5f5;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background: #f8fafc;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-:deep(.el-button) {
+.action-btn:hover {
+  background: #e8e8e8;
+  color: #333;
+}
+
+.action-btn svg {
+  stroke-width: 2;
+}
+
+/* 回复区域 */
+.replies-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.loading-replies,
+.no-replies {
+  text-align: left;
+  padding: 20px;
+  color: #999;
+  font-size: 14px;
+}
+
+.replies-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.reply-item {
+  background: #f8f9fa;
   border-radius: 12px;
+  padding: 14px;
+}
+
+.reply-content {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #333;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.reply-meta {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.reply-time {
+  font-size: 12px;
+  color: #999;
+}
+
+/* 回复输入框 */
+.reply-input-section {
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.reply-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  background: transparent;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.reply-input::placeholder {
+  color: #bbb;
+}
+
+.reply-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.char-count-small {
+  font-size: 12px;
+  color: #999;
+}
+
+.reply-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 6px 18px;
+  border-radius: 12px;
+  font-size: 13px;
   font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s, opacity 0.2s;
 }
 
-:deep(.el-card__body) {
-  padding: 16px;
+.reply-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  opacity: 0.9;
 }
 
-.scroll-list::-webkit-scrollbar {
-  width: 8px;
+.reply-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.scroll-list::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-  margin: 8px 0;
-}
+@media (max-width: 640px) {
+  .message-board {
+    padding: 12px;
+  }
 
-.scroll-list::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.18);
-  border-radius: 4px;
-  transition: background 0.3s ease;
-}
+  .main-content {
+    gap: 14px;
+  }
 
-.scroll-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.32);
+  .create-section,
+  .message-card {
+    padding: 16px;
+  }
+
+  .message-actions {
+    flex-wrap: wrap;
+  }
 }
 </style>

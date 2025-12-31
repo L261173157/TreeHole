@@ -1,37 +1,42 @@
 """
 TreeHole API主程序
-内存模式，无数据库依赖
 
 这是一个匿名留言板API服务,提供留言的创建、查询、点赞和点踩功能。
-当前版本使用内存存储,数据在服务重启后会丢失。
 
 主要功能:
 - 创建新留言(最多140字符)
 - 获取留言列表(支持分页)
 - 获取单条留言详情
 - 点赞/点踩留言
+- 回复留言
 
 技术栈:
 - FastAPI: 高性能Web框架
-- 内存存储: 使用List存储留言数据
-- 线程锁: 使用threading.Lock保证并发安全
+- SQLAlchemy: ORM框架
+- SQLite: 数据库
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List
+from typing import List, Optional
+from sqlalchemy.orm import Session
 from config import API_CONFIG, CORS_CONFIG, ERROR_MESSAGES
 from logger import setupLogger, logInfo
 from fastapi.responses import JSONResponse
-from datetime import datetime
-from threading import Lock
 from fastapi.encoders import jsonable_encoder
 import schemas
+import crud
+from database import engine, getDatabase, createTables
+import models
+from utils import sanitize_html
 
 # ==================== 应用初始化 ====================
 
 # 设置日志记录器
 logger = setupLogger("main")
+
+# 创建数据库表
+models.Base.metadata.create_all(bind=engine)
 
 # 创建FastAPI应用实例
 # title: API文档标题
@@ -57,16 +62,23 @@ app.add_middleware(
     allow_headers=["*"],   # 允许所有请求头
 )
 
-# ==================== 数据存储 ====================
+# ==================== 数据库依赖 ====================
 
-# 内存留言存储
-# 使用列表存储所有留言对象
-# 注意: 服务重启后数据会丢失
-messages_store = []
+from database import SessionLocal
 
-# 线程锁,用于保证并发访问messages_store时的线程安全
-# 防止多个请求同时修改数据导致竞态条件
-store_lock = Lock()
+# 数据库依赖注入函数
+def getDb():
+    """
+    获取数据库会话的依赖注入函数
+
+    Yields:
+        Session: 数据库会话对象
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 # ==================== 工具函数 ====================
 
@@ -98,98 +110,46 @@ def api_response(data=None, code=0, message="success"):
 @app.get("/", tags=["基础"])
 def readRoot():
     """
-    根路径接口
+    API根路径
 
-    用于测试API服务是否正常运行
+    返回API的基本信息
 
     Returns:
-        JSONResponse: 包含欢迎消息的响应
-
-    Example:
-        GET /
-        Response: {"code": 0, "message": "success", "data": {"welcome": "欢迎来到树洞 API！"}}
+        dict: 包含API名称、版本和描述的字典
     """
-    logInfo(logger, "访问根路径")
-    return api_response({"welcome": "欢迎来到树洞 API！"})
+    return {
+        "name": API_CONFIG["title"],
+        "version": API_CONFIG["version"],
+        "description": API_CONFIG["description"]
+    }
 
 @app.get("/ping", tags=["基础"])
-def health_check():
+def ping():
     """
     健康检查接口
 
-    用于负载均衡器或监控系统检查服务健康状态
+    用于检查服务是否正常运行
 
     Returns:
-        JSONResponse: 包含服务状态的响应
-
-    Example:
-        GET /ping
-        Response: {"code": 0, "message": "success", "data": {"status": "ok"}}
+        dict: 包含状态信息的字典
     """
-    return api_response({"status": "ok"})
+    return {"status": "ok", "message": "服务正常运行"}
 
-@app.post("/messages/", response_model=schemas.Message, tags=["留言"])
-def createMessage(message: schemas.MessageCreate):
-    """
-    创建新留言
-
-    接收用户提交的留言内容并保存到内存存储中
-
-    Args:
-        message (MessageCreate): 包含留言内容的请求体
-
-    Returns:
-        JSONResponse: 包含新创建留言对象的响应
-
-    Raises:
-        HTTPException: 当留言内容验证失败时
-
-    Example:
-        POST /messages/
-        Body: {"content": "这是我的第一条留言"}
-        Response: {
-            "code": 0,
-            "message": "success",
-            "data": {
-                "id": 1,
-                "content": "这是我的第一条留言",
-                "timestamp": "2025-12-30T10:30:00",
-                "like_count": 0,
-                "dislike_count": 0,
-                "parent_id": null
-            }
-        }
-    """
-    with store_lock:
-        # 自动生成新留言ID: 如果已有留言则使用最后一条ID+1,否则从1开始
-        # 注意: 服务重启后ID会重新从1开始
-        new_id = (messages_store[-1].id + 1) if messages_store else 1
-
-        # 创建留言对象
-        msg = schemas.Message(
-            id=new_id,
-            content=message.content,
-            parent_id=None,  # 当前版本不支持回复功能
-            timestamp=datetime.utcnow(),  # 使用UTC时间戳
-            like_count=0,
-            dislike_count=0
-        )
-
-        # 将留言添加到内存存储
-        messages_store.append(msg)
-
-    return api_response(msg.dict())
-
-@app.get("/messages/", response_model=List[schemas.Message], tags=["留言"])
-def readMessages(skip: int = 0, limit: int = 20):
+@app.get("/messages/", tags=["留言"])
+def readMessages(
+    skip: int = 0,
+    limit: Optional[int] = None,
+    db: Session = Depends(getDb)
+):
     """
     获取留言列表
 
-    支持分页查询留言列表,按时间倒序排列(最新的在前)
+    获取所有留言,支持分页功能
 
     Args:
-        skip (int): 跳过的留言数量,用于分页。默认为0
-        limit (int): 返回的留言数量上限。默认为20,最大100
+        skip (int): 跳过的留言数量,用于分页,默认为0
+        limit (Optional[int]): 返回的留言数量限制,默认使用配置文件中的值
+        db (Session): 数据库会话
 
     Returns:
         JSONResponse: 包含留言列表的响应
@@ -205,20 +165,18 @@ def readMessages(skip: int = 0, limit: int = 20):
                     "content": "第二条留言",
                     "timestamp": "2025-12-30T11:00:00",
                     "like_count": 5,
-                    "dislike_count": 1
+                    "dislike_count": 1,
+                    "reply_count": 0
                 },
                 ...
             ]
         }
     """
-    with store_lock:
-        # 使用切片实现分页: messages_store[skip:skip+limit]
-        # 列表已在创建时按时间倒序排列(ID越大越新)
-        data = [m.dict() for m in messages_store[skip:skip+limit]]
-    return api_response(data)
+    messages = crud.getMessages(db, skip=skip, limit=limit)
+    return api_response(messages)
 
 @app.get("/messages/{messageId}", response_model=schemas.Message, tags=["留言"])
-def readMessage(messageId: int):
+def readMessage(messageId: int, db: Session = Depends(getDb)):
     """
     获取单条留言详情
 
@@ -226,6 +184,7 @@ def readMessage(messageId: int):
 
     Args:
         messageId (int): 留言的唯一标识符
+        db (Session): 数据库会话
 
     Returns:
         JSONResponse: 包含留言详情的响应
@@ -243,22 +202,105 @@ def readMessage(messageId: int):
                 "content": "这是我的第一条留言",
                 "timestamp": "2025-12-30T10:30:00",
                 "like_count": 10,
-                "dislike_count": 2
+                "dislike_count": 2,
+                "reply_count": 0
             }
         }
     """
-    with store_lock:
-        # 遍历内存存储查找指定ID的留言
-        # TODO: 当留言数量很大时,应考虑使用字典(dict)提高查找效率
-        for m in messages_store:
-            if m.id == messageId:
-                return api_response(m.dict())
+    message = crud.getMessage(db, messageId)
+    if not message:
+        raise HTTPException(status_code=404, detail=ERROR_MESSAGES["message_not_found"])
+    return api_response(message)
 
-    # 未找到留言,返回404错误
-    raise HTTPException(status_code=404, detail=ERROR_MESSAGES["message_not_found"])
+@app.get("/messages/{messageId}/replies", tags=["留言"])
+def readReplies(messageId: int, db: Session = Depends(getDb)):
+    """
+    获取留言的所有回复
+
+    根据父留言ID获取所有回复
+
+    Args:
+        messageId (int): 父留言的唯一标识符
+        db (Session): 数据库会话
+
+    Returns:
+        JSONResponse: 包含回复列表的响应
+
+    Example:
+        GET /messages/1/replies
+        Response: {
+            "code": 0,
+            "message": "success",
+            "data": [
+                {
+                    "id": 2,
+                    "content": "这是回复内容",
+                    "timestamp": "2025-12-30T11:00:00",
+                    "like_count": 0,
+                    "dislike_count": 0,
+                    "reply_count": 0,
+                    "parent_id": 1
+                },
+                ...
+            ]
+        }
+    """
+    # 先检查父留言是否存在
+    parent = crud.getMessage(db, messageId)
+    if not parent:
+        raise HTTPException(status_code=404, detail=ERROR_MESSAGES["message_not_found"])
+
+    replies = crud.getReplies(db, messageId)
+    return api_response(replies)
+
+@app.post("/messages/", response_model=schemas.Message, tags=["留言"])
+def createMessage(message: schemas.MessageCreate, db: Session = Depends(getDb)):
+    """
+    创建新留言或回复
+
+    创建一条新的匿名留言,内容不能超过140个字符
+    如果提供parent_id,则创建回复
+
+    Args:
+        message (MessageCreate): 留言创建请求,包含content和parent_id字段
+        db (Session): 数据库会话
+
+    Returns:
+        JSONResponse: 包含新创建留言信息的响应
+
+    Raises:
+        HTTPException: 当内容验证失败时返回400错误
+
+    Example:
+        POST /messages/
+        Body: {"content": "这是我的第一条留言"}
+        Response: {
+            "code": 0,
+            "message": "success",
+            "data": {
+                "id": 1,
+                "content": "这是我的第一条留言",
+                "timestamp": "2025-12-30T10:30:00",
+                "like_count": 0,
+                "dislike_count": 0,
+                "reply_count": 0,
+                "parent_id": null
+            }
+        }
+    """
+    try:
+        # XSS防护: 过滤用户输入中的HTML标签
+        message.content = sanitize_html(message.content)
+
+        dbMessage = crud.createMessage(db, message)
+        if not dbMessage:
+            raise HTTPException(status_code=400, detail="创建留言失败")
+        return api_response(dbMessage)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/messages/{messageId}/like", response_model=schemas.Message, tags=["留言"])
-def likeMessage(messageId: int):
+def likeMessage(messageId: int, db: Session = Depends(getDb)):
     """
     给留言点赞
 
@@ -266,6 +308,7 @@ def likeMessage(messageId: int):
 
     Args:
         messageId (int): 要点赞的留言ID
+        db (Session): 数据库会话
 
     Returns:
         JSONResponse: 包含更新后留言信息的响应
@@ -290,17 +333,13 @@ def likeMessage(messageId: int):
         - 当前版本没有限制点赞次数,同一用户可以多次点赞
         - 建议生产环境添加IP限制或用户认证来防止刷票
     """
-    with store_lock:
-        for m in messages_store:
-            if m.id == messageId:
-                # 增加点赞计数
-                m.like_count += 1
-                return api_response(m.dict())
-
-    raise HTTPException(status_code=404, detail=ERROR_MESSAGES["message_not_found"])
+    message = crud.likeMessage(db, messageId)
+    if not message:
+        raise HTTPException(status_code=404, detail=ERROR_MESSAGES["message_not_found"])
+    return api_response(message)
 
 @app.post("/messages/{messageId}/dislike", response_model=schemas.Message, tags=["留言"])
-def dislikeMessage(messageId: int):
+def dislikeMessage(messageId: int, db: Session = Depends(getDb)):
     """
     给留言点踩
 
@@ -308,6 +347,7 @@ def dislikeMessage(messageId: int):
 
     Args:
         messageId (int): 要点踩的留言ID
+        db (Session): 数据库会话
 
     Returns:
         JSONResponse: 包含更新后留言信息的响应
@@ -332,14 +372,10 @@ def dislikeMessage(messageId: int):
         - 当前版本没有限制点踩次数,同一用户可以多次点踩
         - 建议生产环境添加IP限制或用户认证来防止刷票
     """
-    with store_lock:
-        for m in messages_store:
-            if m.id == messageId:
-                # 增加点踩计数
-                m.dislike_count += 1
-                return api_response(m.dict())
-
-    raise HTTPException(status_code=404, detail=ERROR_MESSAGES["message_not_found"])
+    message = crud.dislikeMessage(db, messageId)
+    if not message:
+        raise HTTPException(status_code=404, detail=ERROR_MESSAGES["message_not_found"])
+    return api_response(message)
 
 # ==================== 应用启动 ====================
 

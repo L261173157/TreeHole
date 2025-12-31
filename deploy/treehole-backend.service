@@ -1,0 +1,19 @@
+[Unit]
+Description=TreeHole Backend API
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/treehole/backend
+Environment="PATH=/opt/treehole/backend/venv/bin"
+ExecStart=/opt/treehole/backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=10
+
+# 日志
+StandardOutput=append:/opt/treehole/backend/backend.log
+StandardError=append:/opt/treehole/backend/backend.log
+
+[Install]
+WantedBy=multi-user.target

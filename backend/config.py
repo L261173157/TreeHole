@@ -86,8 +86,8 @@ def parseCorsOrigins(originsStr: str) -> List[str]:
 CORS_CONFIG = {
     "allow_origins": parseCorsOrigins(getEnv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")),
     "allow_credentials": True,
-    "allow_methods": ["*"],
-    "allow_headers": ["*"]
+    "allow_methods": ["GET", "POST", "OPTIONS"],  # 限制HTTP方法
+    "allow_headers": ["Content-Type"]  # 限制请求头
 }
 
 # API配置
