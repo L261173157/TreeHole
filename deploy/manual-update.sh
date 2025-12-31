@@ -19,8 +19,22 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# 0. 停止服务
+echo "🛑 [0/7] 停止服务..."
+systemctl stop treehole-backend
+
+# 杀掉可能残留的uvicorn进程
+if pgrep -f "uvicorn.*8000" > /dev/null; then
+    echo "🔍 发现残留的uvicorn进程,正在清理..."
+    pkill -9 -f "uvicorn.*8000" || true
+    sleep 2
+fi
+
+echo "✅ 服务已停止"
+echo ""
+
 # 1. 备份数据库
-echo "📦 [1/6] 备份数据库..."
+echo "📦 [1/7] 备份数据库..."
 BACKUP_FILE="backend/treehole.db.backup.$(date +%Y%m%d_%H%M%S)"
 if [ -f "backend/treehole.db" ]; then
     cp backend/treehole.db "$BACKUP_FILE"
@@ -32,7 +46,7 @@ fi
 echo ""
 
 # 2. 拉取代码
-echo "📥 [2/6] 拉取最新代码..."
+echo "📥 [2/7] 拉取最新代码..."
 git fetch origin
 CURRENT_COMMIT=$(git rev-parse HEAD)
 REMOTE_COMMIT=$(git rev-parse origin/main)
@@ -49,7 +63,7 @@ fi
 echo ""
 
 # 3. 更新后端依赖
-echo "📦 [3/6] 检查后端依赖..."
+echo "📦 [3/7] 检查后端依赖..."
 cd backend
 if [ ! -d "venv" ]; then
     echo "❌ 虚拟环境不存在,请先运行首次部署脚本"
@@ -63,23 +77,8 @@ cd ..
 echo "✅ 后端依赖已更新"
 echo ""
 
-# 4. 重启后端
-echo "🔄 [4/6] 重启后端服务..."
-systemctl restart treehole-backend
-sleep 3
-
-if systemctl is-active --quiet treehole-backend; then
-    echo "✅ 后端服务已重启"
-else
-    echo "❌ 后端服务启动失败!"
-    echo "📋 错误日志:"
-    journalctl -u treehole-backend -n 20 --no-pager
-    exit 1
-fi
-echo ""
-
-# 5. 构建前端
-echo "🔨 [5/6] 构建前端..."
+# 4. 构建前端
+echo "🔨 [4/7] 构建前端..."
 cd src
 if [ ! -d "node_modules" ]; then
     echo "📦 首次构建,安装依赖..."
@@ -97,8 +96,23 @@ fi
 cd ..
 echo ""
 
+# 5. 启动后端
+echo "🔄 [5/7] 启动后端服务..."
+systemctl start treehole-backend
+sleep 3
+
+if systemctl is-active --quiet treehole-backend; then
+    echo "✅ 后端服务已启动"
+else
+    echo "❌ 后端服务启动失败!"
+    echo "📋 错误日志:"
+    journalctl -u treehole-backend -n 20 --no-pager
+    exit 1
+fi
+echo ""
+
 # 6. 重启nginx
-echo "🔄 [6/6] 重启nginx..."
+echo "🔄 [6/7] 重启nginx..."
 systemctl restart nginx
 
 if systemctl is-active --quiet nginx; then
@@ -111,7 +125,7 @@ fi
 echo ""
 
 # 7. 验证
-echo "🔍 验证服务状态..."
+echo "🔍 [7/7] 验证服务状态..."
 if curl -s http://localhost:8000/ping | grep -q "ok"; then
     echo "✅ 后端服务正常"
 else
@@ -145,3 +159,4 @@ echo "📋 查看日志:"
 echo "  后端: sudo journalctl -u treehole-backend -f"
 echo "  Nginx: sudo tail -f /var/log/nginx/error.log"
 echo ""
+

@@ -354,11 +354,34 @@ onUnmounted(() => {
 <style scoped>
 .message-board {
   min-height: 100vh;
+  max-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
+  padding: 16px;
   display: flex;
   justify-content: center;
   text-align: left;
+  overflow-y: auto;
+  /* 显示滚动条 */
+  scrollbar-width: auto; /* Firefox */
+  -ms-overflow-style: auto; /* IE/Edge */
+}
+
+.message-board::-webkit-scrollbar {
+  width: 8px; /* Chrome/Safari */
+}
+
+.message-board::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.message-board::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+}
+
+.message-board::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .message-board * {
@@ -370,25 +393,26 @@ onUnmounted(() => {
   max-width: 600px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
+  padding-bottom: 16px;
 }
 
 /* 标题区域 */
 .app-header {
   text-align: left;
   color: white;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .app-title {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
-  margin: 0 0 8px 0;
+  margin: 0 0 4px 0;
   letter-spacing: 2px;
 }
 
 .app-subtitle {
-  font-size: 14px;
+  font-size: 13px;
   margin: 0;
   opacity: 0.9;
   font-weight: 300;
@@ -397,8 +421,8 @@ onUnmounted(() => {
 /* 创建区域 */
 .create-section {
   background: white;
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: 12px;
+  padding: 14px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
@@ -406,12 +430,13 @@ onUnmounted(() => {
   width: 100%;
   border: none;
   outline: none;
-  font-size: 16px;
+  font-size: 15px;
   font-family: inherit;
   resize: none;
-  min-height: 80px;
+  min-height: 60px;
+  max-height: 120px;
   color: #333;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .message-input::placeholder {
@@ -425,7 +450,7 @@ onUnmounted(() => {
 }
 
 .char-count {
-  font-size: 14px;
+  font-size: 13px;
   color: #999;
 }
 
@@ -438,9 +463,9 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  padding: 10px 28px;
-  border-radius: 20px;
-  font-size: 15px;
+  padding: 8px 24px;
+  border-radius: 16px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: transform 0.2s, opacity 0.2s;
@@ -460,32 +485,32 @@ onUnmounted(() => {
 .messages-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .empty-state {
   background: white;
-  border-radius: 16px;
-  padding: 60px 20px;
+  border-radius: 12px;
+  padding: 40px 20px;
   text-align: left;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .empty-state svg {
   color: #667eea;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .empty-state p {
   color: #666;
-  font-size: 16px;
+  font-size: 15px;
 }
 
 /* 留言卡片 */
 .message-card {
   background: white;
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: 12px;
+  padding: 14px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -496,10 +521,10 @@ onUnmounted(() => {
 }
 
 .message-content {
-  font-size: 16px;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.5;
   color: #333;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   word-break: break-word;
 }
 
@@ -507,37 +532,37 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-  padding-top: 12px;
+  margin-bottom: 8px;
+  padding-top: 8px;
   border-top: 1px solid #f0f0f0;
 }
 
 .message-id {
-  font-size: 13px;
+  font-size: 12px;
   color: #999;
   font-weight: 500;
 }
 
 .message-time {
-  font-size: 13px;
+  font-size: 12px;
   color: #999;
 }
 
 /* 操作按钮 */
 .message-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .action-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  gap: 4px;
+  padding: 6px 12px;
   border: none;
   background: #f5f5f5;
-  border-radius: 12px;
-  font-size: 14px;
+  border-radius: 10px;
+  font-size: 13px;
   color: #666;
   cursor: pointer;
   transition: all 0.2s;
@@ -554,37 +579,37 @@ onUnmounted(() => {
 
 /* 回复区域 */
 .replies-section {
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid #f0f0f0;
 }
 
 .loading-replies,
 .no-replies {
   text-align: left;
-  padding: 20px;
+  padding: 14px;
   color: #999;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .replies-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .reply-item {
   background: #f8f9fa;
-  border-radius: 12px;
-  padding: 14px;
+  border-radius: 10px;
+  padding: 12px;
 }
 
 .reply-content {
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.5;
   color: #333;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   word-break: break-word;
 }
 
@@ -594,15 +619,15 @@ onUnmounted(() => {
 }
 
 .reply-time {
-  font-size: 12px;
+  font-size: 11px;
   color: #999;
 }
 
 /* 回复输入框 */
 .reply-input-section {
   background: #fafafa;
-  border-radius: 12px;
-  padding: 14px;
+  border-radius: 10px;
+  padding: 12px;
 }
 
 .reply-input {
@@ -613,7 +638,7 @@ onUnmounted(() => {
   font-family: inherit;
   resize: none;
   background: transparent;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   color: #333;
 }
 
@@ -628,7 +653,7 @@ onUnmounted(() => {
 }
 
 .char-count-small {
-  font-size: 12px;
+  font-size: 11px;
   color: #999;
 }
 
@@ -636,9 +661,9 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  padding: 6px 18px;
-  border-radius: 12px;
-  font-size: 13px;
+  padding: 5px 16px;
+  border-radius: 10px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: transform 0.2s, opacity 0.2s;
@@ -656,16 +681,16 @@ onUnmounted(() => {
 
 @media (max-width: 640px) {
   .message-board {
-    padding: 12px;
+    padding: 10px;
   }
 
   .main-content {
-    gap: 14px;
+    gap: 10px;
   }
 
   .create-section,
   .message-card {
-    padding: 16px;
+    padding: 12px;
   }
 
   .message-actions {
