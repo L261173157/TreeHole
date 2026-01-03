@@ -16,7 +16,7 @@ TreeHole API主程序
 - SQLite: 数据库
 """
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from sqlalchemy.orm import Session
@@ -29,6 +29,7 @@ import crud
 from database import engine, getDatabase, createTables
 import models
 from utils import sanitize_html
+from ip_utils import get_client_ip, get_ip_location
 
 # ==================== 应用初始化 ====================
 
@@ -254,15 +255,21 @@ def readReplies(messageId: int, db: Session = Depends(getDb)):
     return api_response(replies)
 
 @app.post("/messages/", response_model=schemas.Message, tags=["留言"])
-def createMessage(message: schemas.MessageCreate, db: Session = Depends(getDb)):
+def createMessage(
+    message: schemas.MessageCreate,
+    request: Request,
+    db: Session = Depends(getDb)
+):
     """
     创建新留言或回复
 
     创建一条新的匿名留言,内容不能超过140个字符
     如果提供parent_id,则创建回复
+    自动获取客户端IP地址并查询地理位置
 
     Args:
         message (MessageCreate): 留言创建请求,包含content和parent_id字段
+        request (Request): FastAPI请求对象
         db (Session): 数据库会话
 
     Returns:
@@ -284,7 +291,8 @@ def createMessage(message: schemas.MessageCreate, db: Session = Depends(getDb)):
                 "like_count": 0,
                 "dislike_count": 0,
                 "reply_count": 0,
-                "parent_id": null
+                "parent_id": null,
+                "location": "北京市"
             }
         }
     """
@@ -292,7 +300,16 @@ def createMessage(message: schemas.MessageCreate, db: Session = Depends(getDb)):
         # XSS防护: 过滤用户输入中的HTML标签
         message.content = sanitize_html(message.content)
 
-        dbMessage = crud.createMessage(db, message)
+        # 获取客户端IP和地理位置
+        client_ip = get_client_ip(request)
+        location = get_ip_location(client_ip)
+
+        dbMessage = crud.createMessage(
+            db,
+            message,
+            ip_address=client_ip,
+            location=location
+        )
         if not dbMessage:
             raise HTTPException(status_code=400, detail="创建留言失败")
         return api_response(dbMessage)

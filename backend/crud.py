@@ -62,17 +62,19 @@ def getMessages(db: Session, skip: int = 0, limit: Optional[int] = None) -> List
         logError(logger, e, "获取留言列表失败")
         return []
 
-def createMessage(db: Session, message: schemas.MessageCreate) -> Optional[models.Message]:
+def createMessage(db: Session, message: schemas.MessageCreate, ip_address: str = None, location: str = None) -> Optional[models.Message]:
     """
     创建新留言
-    
+
     Args:
         db (Session): 数据库会话
         message (MessageCreate): 留言创建数据
-        
+        ip_address (str): 留言者IP地址
+        location (str): IP地理位置
+
     Returns:
         Optional[Message]: 创建的留言对象，失败时返回None
-        
+
     Raises:
         ValueError: 当内容超过字符限制时
     """
@@ -80,17 +82,19 @@ def createMessage(db: Session, message: schemas.MessageCreate) -> Optional[model
         # 验证内容长度
         if len(message.content) > MESSAGE_CONFIG["max_content_length"]:
             raise ValueError(ERROR_MESSAGES["content_too_long"])
-        
+
         dbMessage = models.Message(
             content=message.content,
             parent_id=message.parent_id,
-            timestamp=datetime.datetime.utcnow()
+            timestamp=datetime.datetime.utcnow(),
+            ip_address=ip_address,
+            location=location
         )
-        
+
         db.add(dbMessage)
         db.commit()
         db.refresh(dbMessage)
-        
+
         # 如果是回复，更新父留言的回复数
         if message.parent_id:
             parent = getMessage(db, message.parent_id)
@@ -98,10 +102,10 @@ def createMessage(db: Session, message: schemas.MessageCreate) -> Optional[model
                 setattr(parent, 'reply_count', (getattr(parent, 'reply_count', 0) or 0) + 1)
                 db.commit()
                 logInfo(logger, f"更新父留言 {message.parent_id} 的回复数")
-        
-        logInfo(logger, f"成功创建留言 ID: {dbMessage.id}")
+
+        logInfo(logger, f"成功创建留言 ID: {dbMessage.id}, IP: {ip_address}, 位置: {location}")
         return dbMessage
-        
+
     except ValueError:
         # 重新抛出验证错误
         raise

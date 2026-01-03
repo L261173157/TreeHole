@@ -48,6 +48,13 @@
             <div class="message-meta">
               <span class="message-id">#{{ msg.id }}</span>
               <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
+              <span v-if="msg.location" class="message-location">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                {{ msg.location }}
+              </span>
             </div>
 
             <!-- 操作按钮 -->
@@ -85,6 +92,13 @@
                   <div class="reply-content">{{ reply.content }}</div>
                   <div class="reply-meta">
                     <span class="reply-time">{{ formatTime(reply.timestamp) }}</span>
+                    <span v-if="reply.location" class="reply-location">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      {{ reply.location }}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -548,6 +562,19 @@ onUnmounted(() => {
   color: #999;
 }
 
+.message-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: #667eea;
+  font-weight: 500;
+}
+
+.message-location svg {
+  stroke-width: 2;
+}
+
 /* 操作按钮 */
 .message-actions {
   display: flex;
@@ -621,6 +648,20 @@ onUnmounted(() => {
 .reply-time {
   font-size: 11px;
   color: #999;
+}
+
+.reply-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  color: #667eea;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+.reply-location svg {
+  stroke-width: 2;
 }
 
 /* 回复输入框 */

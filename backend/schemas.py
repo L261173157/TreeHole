@@ -54,6 +54,8 @@ class Message(MessageBase):
         dislike_count (int): 踩数量
         reply_count (int): 回复数量
         parent_id (Optional[int]): 父留言ID
+        ip_address (Optional[str]): IP地址
+        location (Optional[str]): IP地理位置
     """
     id: int
     timestamp: datetime
@@ -61,6 +63,8 @@ class Message(MessageBase):
     dislike_count: int
     reply_count: int
     parent_id: Optional[int] = None
+    ip_address: Optional[str] = None
+    location: Optional[str] = None
 
     class Config:
         from_attributes = True
